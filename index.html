@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freelance Match — Find the right freelance engineer. Fast.</title>
+  <meta name="description" content="Connect freelance technical crew with production bookers in film, TV, live events, and broadcast." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: '#0F172A',
+            slate: '#1E2937',
+            teal: { DEFAULT: '#14B8A6', dark: '#0D9488', light: '#2DD4BF' },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-up': 'slideUp 0.5s ease-out forwards',
+            'slide-in-right': 'slideInRight 0.3s ease-out forwards',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            slideInRight: { '0%': { opacity: '0', transform: 'translateX(100%)' }, '100%': { opacity: '1', transform: 'translateX(0)' } },
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    [data-view] { display: none; }
+    [data-view].active { display: block; }
+    .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
+    .skill-chip.selected { background: rgba(20,184,166,0.2); border-color: #14B8A6; color: #2DD4BF; }
+    .calendar-day.available { background: rgba(20,184,166,0.35); border-color: #14B8A6; color: #fff; }
+    .calendar-day.available:hover { background: rgba(20,184,166,0.5); }
+    .calendar-day.past { opacity: 0.35; cursor: not-allowed; }
+    .portal-tab.active { background: #14B8A6; color: #fff; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #14B8A6; cursor: pointer; }
+    input[type="date"] { color-scheme: dark; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1E2937; }
+    ::-webkit-scrollbar-thumb { background: #14B8A6; border-radius: 3px; }
+    .role-pill-active { box-shadow: 0 0 0 2px #14B8A6, 0 0 12px rgba(20, 184, 166, 0.35); }
+    .hero-gradient { background: linear-gradient(135deg, #0F172A 0%, #1E2937 50%, #0F172A 100%); }
+    .glass { background: rgba(30, 41, 55, 0.7); backdrop-filter: blur(12px); }
+  </style>
+</head>
+<body class="bg-navy text-gray-100 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- ==================== NAVBAR ==================== -->
+  <header id="navbar" class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10 transition-all duration-300">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-18">
+        <!-- Logo -->
+        <button type="button" onclick="App.navigate('landing')" class="flex items-center gap-2.5 group shrink-0" aria-label="Freelance Match home">
+          <div class="relative w-9 h-9 flex items-center justify-center">
+            <svg class="w-9 h-9 text-teal transition-transform duration-300 group-hover:scale-110" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+              <path d="M8 14C8 10.6863 10.6863 8 14 8H16V14C16 17.3137 13.3137 20 10 20H8V14Z" fill="currentColor" opacity="0.9"/>
+              <path d="M28 22C28 25.3137 25.3137 28 22 28H20V22C20 18.6863 22.6863 16 26 16H28V22Z" fill="currentColor"/>
+              <path d="M14 8L22 8L22 14L16 14C14.8954 14 14 13.1046 14 12V8Z" fill="#2DD4BF" opacity="0.6"/>
+              <path d="M22 28L14 28L14 22L20 22C21.1046 22 22 22.8954 22 24V28Z" fill="#2DD4BF" opacity="0.6"/>
+            </svg>
+          </div>
+          <span class="text-lg font-bold tracking-tight text-white hidden sm:block">
+            Freelance<span class="text-teal"> Match</span>
+          </span>
+        </button>
+
+        <!-- Desktop nav links -->
+        <div class="hidden md:flex items-center gap-6">
+          <button type="button" onclick="App.navigate('landing')" class="nav-link text-sm text-gray-300 hover:text-teal transition-colors" data-nav="landing">Home</button>
+          <button type="button" onclick="App.navigate('engineer')" class="nav-link text-sm text-gray-300 hover:text-teal transition-colors" data-nav="engineer">Engineer Portal</button>
+          <button type="button" onclick="App.navigate('booker')" class="nav-link text-sm text-gray-300 hover:text-teal transition-colors" data-nav="booker">Booker Portal</button>
+        </div>
+
+        <!-- Role toggle (desktop) -->
+        <div class="hidden lg:flex items-center gap-3">
+          <span class="text-xs text-gray-400 uppercase tracking-wider font-medium">Demo as</span>
+          <div class="flex rounded-lg bg-slate/80 p-1 border border-white/10" role="group" aria-label="Switch demo role">
+            <button type="button" id="role-toggle-engineer" onclick="App.setRole('engineer')"
+              class="role-toggle-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 text-gray-400 hover:text-white"
+              data-role="engineer">
+              <span class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Engineer
+              </span>
+            </button>
+            <button type="button" id="role-toggle-booker" onclick="App.setRole('booker')"
+              class="role-toggle-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 text-gray-400 hover:text-white"
+              data-role="booker">
+              <span class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Booker
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile menu button -->
+        <button type="button" id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg text-gray-300 hover:bg-white/10 transition-colors" aria-label="Open menu" aria-expanded="false">
+          <svg id="menu-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <svg id="menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Mobile menu panel -->
+      <div id="mobile-menu" class="lg:hidden hidden pb-4 border-t border-white/10 mt-0 pt-4 animate-fade-in">
+        <div class="flex flex-col gap-2">
+          <button type="button" onclick="App.navigate('landing'); App.closeMobileMenu()" class="nav-link-mobile text-left px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors" data-nav="landing">Home</button>
+          <button type="button" onclick="App.navigate('engineer'); App.closeMobileMenu()" class="nav-link-mobile text-left px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors" data-nav="engineer">Engineer Portal</button>
+          <button type="button" onclick="App.navigate('booker'); App.closeMobileMenu()" class="nav-link-mobile text-left px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors" data-nav="booker">Booker Portal</button>
+        </div>
+        <div class="mt-4 pt-4 border-t border-white/10">
+          <p class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2 px-3">Demo as</p>
+          <div class="flex gap-2 px-3">
+            <button type="button" onclick="App.setRole('engineer'); App.closeMobileMenu()"
+              class="role-toggle-btn-mobile flex-1 px-3 py-2.5 text-xs font-semibold rounded-lg border border-white/10 transition-all duration-200"
+              data-role="engineer">
+              Freelance Engineer
+            </button>
+            <button type="button" onclick="App.setRole('booker'); App.closeMobileMenu()"
+              class="role-toggle-btn-mobile flex-1 px-3 py-2.5 text-xs font-semibold rounded-lg border border-white/10 transition-all duration-200"
+              data-role="booker">
+              Crew Booker
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Role indicator bar -->
+    <div id="role-indicator" class="bg-teal/10 border-t border-teal/20 transition-all duration-300 overflow-hidden" style="max-height: 0; opacity: 0;">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="w-2 h-2 rounded-full bg-teal animate-pulse"></span>
+          <span id="role-indicator-text" class="text-teal-light font-medium"></span>
+        </div>
+        <button type="button" id="role-indicator-cta" onclick="" class="text-xs font-semibold text-teal hover:text-teal-light transition-colors underline underline-offset-2"></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 pt-16" id="main-content">
+
+    <!-- ==================== LANDING PAGE ==================== -->
+    <div data-view="landing" class="active">
+
+      <!-- Hero -->
+      <section class="relative hero-gradient overflow-hidden">
+        <div class="absolute inset-0 opacity-20">
+          <!-- Grok Imagine prompt: Cinematic wide shot of a modern broadcast control room and film set merged, diverse technical crew collaborating, golden hour lighting through studio windows, deep navy and teal color grading, professional atmosphere -->
+          <img src="https://picsum.photos/seed/freelancematch-hero/1920/1080" alt="" class="w-full h-full object-cover" loading="eager" />
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-r from-navy via-navy/90 to-navy/60"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-navy via-transparent to-transparent"></div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
+          <div class="max-w-3xl animate-slide-up">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal/10 border border-teal/30 text-teal-light text-xs font-semibold uppercase tracking-wider mb-6">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              Trusted by productions worldwide
+            </div>
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight">
+              Find the right freelance engineer.
+              <span class="text-teal block sm:inline"> Fast.</span>
+            </h1>
+            <p class="mt-6 text-lg sm:text-xl text-gray-300 leading-relaxed max-w-2xl">
+              Freelance Match connects skilled technical crew with production teams across film, TV, live events, and broadcast.
+              Engineers showcase availability and rates; bookers search, match, and hire — all in one place.
+            </p>
+            <div class="mt-10 flex flex-col sm:flex-row gap-4">
+              <button type="button" onclick="App.ctaEngineer()"
+                class="group flex items-center justify-center gap-2 px-8 py-4 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal/25 hover:-translate-y-0.5">
+                <svg class="w-5 h-5 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                I'm a Freelance Engineer
+              </button>
+              <button type="button" onclick="App.ctaBooker()"
+                class="group flex items-center justify-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-xl transition-all duration-200 hover:-translate-y-0.5 backdrop-blur-sm">
+                <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                I'm a Crew Booker
+              </button>
+            </div>
+            <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400">
+              <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-teal" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm8.707 5.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg> GDPR compliant</span>
+              <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-teal" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg> 2,400+ engineers</span>
+              <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-teal" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg> 40+ countries</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats bar -->
+      <section class="bg-slate border-y border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div class="animate-fade-in" style="animation-delay: 0.1s">
+              <p class="text-3xl font-bold text-teal">2,400+</p>
+              <p class="text-sm text-gray-400 mt-1">Verified Engineers</p>
+            </div>
+            <div class="animate-fade-in" style="animation-delay: 0.2s">
+              <p class="text-3xl font-bold text-teal">850+</p>
+              <p class="text-sm text-gray-400 mt-1">Productions Served</p>
+            </div>
+            <div class="animate-fade-in" style="animation-delay: 0.3s">
+              <p class="text-3xl font-bold text-teal">&lt;4 hrs</p>
+              <p class="text-sm text-gray-400 mt-1">Avg. Match Time</p>
+            </div>
+            <div class="animate-fade-in" style="animation-delay: 0.4s">
+              <p class="text-3xl font-bold text-teal">98%</p>
+              <p class="text-sm text-gray-400 mt-1">Satisfaction Rate</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How it Works -->
+      <section class="py-20 sm:py-28 bg-navy">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-16">
+            <h2 class="text-3xl sm:text-4xl font-bold text-white">How it works</h2>
+            <p class="mt-4 text-gray-400 max-w-xl mx-auto">Whether you're hiring crew or looking for your next gig, getting started takes minutes.</p>
+          </div>
+
+          <!-- Role tabs for How it Works -->
+          <div class="flex justify-center mb-12">
+            <div class="inline-flex rounded-xl bg-slate p-1 border border-white/10" role="tablist">
+              <button type="button" id="hiw-tab-engineer" onclick="App.setHiwTab('engineer')" role="tab" aria-selected="true"
+                class="hiw-tab px-6 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 bg-teal text-white">
+                For Engineers
+              </button>
+              <button type="button" id="hiw-tab-booker" onclick="App.setHiwTab('booker')" role="tab" aria-selected="false"
+                class="hiw-tab px-6 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-400 hover:text-white">
+                For Bookers
+              </button>
+            </div>
+          </div>
+
+          <!-- Engineer steps -->
+          <div id="hiw-engineer" class="hiw-panel grid md:grid-cols-3 gap-8">
+            <div class="group relative bg-slate rounded-2xl p-8 border border-white/10 hover:border-teal/40 transition-all duration-300 hover:-translate-y-1">
+              <div class="w-12 h-12 rounded-xl bg-teal/20 flex items-center justify-center text-teal font-bold text-lg mb-5">1</div>
+              <h3 class="text-xl font-semibold text-white mb-3">Build your profile</h3>
+              <p class="text-gray-400 text-sm leading-relaxed">Add your skills, day rates, location, and a professional bio. Upload a photo and set your standard terms.</p>
+            </div>
+            <div class="group relative bg-slate rounded-2xl p-8 border border-white/10 hover:border-teal/40 transition-all duration-300 hover:-translate-y-1">
+              <div class="w-12 h-12 rounded-xl bg-teal/20 flex items-center justify-center text-teal font-bold text-lg mb-5">2</div>
+              <h3 class="text-xl font-semibold text-white mb-3">Mark your availability</h3>
+              <p class="text-gray-400 text-sm leading-relaxed">Toggle days on your calendar when you're free to work. Bookers only see you when you're actually available.</p>
+            </div>
+            <div class="group relative bg-slate rounded-2xl p-8 border border-white/10 hover:border-teal/40 transition-all duration-300 hover:-translate-y-1">
+              <div class="w-12 h-12 rounded-xl bg-teal/20 flex items-center justify-center text-teal font-bold text-lg mb-5">3</div>
+              <h3 class="text-xl font-semibold text-white mb-3">Get matched & booked</h3>
+              <p class="text-gray-400 text-sm leading-relaxed">Receive availability requests from productions. Review inquiries in your dashboard and confirm bookings.</p>
+            </div>
+          </div>
+
+          <!-- Booker steps -->
+          <div id="hiw-booker" class="hiw-panel hidden grid md:grid-cols-3 gap-8">
+            <div class="group relative bg-slate rounded-2xl p-8 border border-white/10 hover:border-teal/40 transition-all duration-300 hover:-translate-y-1">
+              <div class="w-12 h-12 rounded-xl bg-teal/20 flex items-center justify-center text-teal font-bold text-lg mb-5">1</div>
+              <h3 class="text-xl font-semibold text-white mb-3">Define your needs</h3>
+              <p class="text-gray-400 text-sm leading-relaxed">Select the date, required skills, location, and budget. Our search filters to engineers who match your criteria.</p>
+            </div>
+            <div class="group relative bg-slate rounded-2xl p-8 border border-white/10 hover:border-teal/40 transition-all duration-300 hover:-translate-y-1">
+              <div class="w-12 h-12 rounded-xl bg-teal/20 flex items-center justify-center text-teal font-bold text-lg mb-5">2</div>
+              <h3 class="text-xl font-semibold text-white mb-3">Review matched engineers</h3>
+              <p class="text-gray-400 text-sm leading-relaxed">Browse verified profiles with rates, skills, and confirmed availability. View full details before reaching out.</p>
+            </div>
+            <div class="group relative bg-slate rounded-2xl p-8 border border-white/10 hover:border-teal/40 transition-all duration-300 hover:-translate-y-1">
+              <div class="w-12 h-12 rounded-xl bg-teal/20 flex items-center justify-center text-teal font-bold text-lg mb-5">3</div>
+              <h3 class="text-xl font-semibold text-white mb-3">Request availability</h3>
+              <p class="text-gray-400 text-sm leading-relaxed">Send a direct inquiry with your proposed dates and message. Track responses and confirm your crew.</p>
+            </div>
+          </div>
+
+          <div class="text-center mt-12">
+            <button type="button" id="hiw-cta" onclick="App.ctaEngineer()"
+              class="inline-flex items-center gap-2 px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal/25">
+              Get started as an Engineer
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature imagery section -->
+      <section class="py-20 bg-slate">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="order-2 lg:order-1">
+              <h2 class="text-3xl font-bold text-white mb-4">Built for production realities</h2>
+              <p class="text-gray-400 leading-relaxed mb-6">Last-minute crew changes, tight budgets, and complex technical requirements — Freelance Match is designed around how productions actually work.</p>
+              <ul class="space-y-4">
+                <li class="flex items-start gap-3">
+                  <span class="w-6 h-6 rounded-full bg-teal/20 flex items-center justify-center shrink-0 mt-0.5"><svg class="w-3.5 h-3.5 text-teal" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></span>
+                  <span class="text-gray-300 text-sm"><strong class="text-white">Real-time availability</strong> — no more chasing DMs to check if someone's free.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="w-6 h-6 rounded-full bg-teal/20 flex items-center justify-center shrink-0 mt-0.5"><svg class="w-3.5 h-3.5 text-teal" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></span>
+                  <span class="text-gray-300 text-sm"><strong class="text-white">Transparent day rates</strong> — see costs upfront, filtered by role and currency.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="w-6 h-6 rounded-full bg-teal/20 flex items-center justify-center shrink-0 mt-0.5"><svg class="w-3.5 h-3.5 text-teal" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></span>
+                  <span class="text-gray-300 text-sm"><strong class="text-white">Skill-based matching</strong> — find engineers with exactly the expertise you need.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="order-1 lg:order-2 relative rounded-2xl overflow-hidden aspect-[4/3] shadow-2xl shadow-black/40">
+              <!-- Grok Imagine prompt: Behind-the-scenes photo of a live broadcast truck setup at a major sporting event, engineers configuring audio and video equipment, professional workwear, dynamic lighting, cinematic depth of field -->
+              <img src="https://picsum.photos/seed/freelancematch-feature/800/600" alt="Production crew at work" class="w-full h-full object-cover" loading="lazy" />
+              <div class="absolute inset-0 bg-gradient-to-t from-navy/60 to-transparent"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trust signals -->
+      <section class="py-20 bg-navy">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white">Trusted & compliant</h2>
+            <p class="mt-3 text-gray-400">Your data and privacy are protected to the highest global standards.</p>
+          </div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-slate rounded-2xl p-6 border border-white/10 text-center hover:border-teal/30 transition-colors duration-300">
+              <div class="w-14 h-14 mx-auto rounded-full bg-teal/10 flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              </div>
+              <h3 class="font-semibold text-white mb-2">GDPR Compliant</h3>
+              <p class="text-sm text-gray-400">Full data rights: access, export, rectification, and erasure built in.</p>
+            </div>
+            <div class="bg-slate rounded-2xl p-6 border border-white/10 text-center hover:border-teal/30 transition-colors duration-300">
+              <div class="w-14 h-14 mx-auto rounded-full bg-teal/10 flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <h3 class="font-semibold text-white mb-2">Global Reach</h3>
+              <p class="text-sm text-gray-400">Used by productions across 40+ countries on six continents.</p>
+            </div>
+            <div class="bg-slate rounded-2xl p-6 border border-white/10 text-center hover:border-teal/30 transition-colors duration-300">
+              <div class="w-14 h-14 mx-auto rounded-full bg-teal/10 flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              </div>
+              <h3 class="font-semibold text-white mb-2">Data Minimization</h3>
+              <p class="text-sm text-gray-400">We only collect what's necessary to match you with the right crew.</p>
+            </div>
+            <div class="bg-slate rounded-2xl p-6 border border-white/10 text-center hover:border-teal/30 transition-colors duration-300">
+              <div class="w-14 h-14 mx-auto rounded-full bg-teal/10 flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+              </div>
+              <h3 class="font-semibold text-white mb-2">Verified Profiles</h3>
+              <p class="text-sm text-gray-400">Every engineer profile is reviewed for accuracy and professionalism.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA banner -->
+      <section class="relative py-20 overflow-hidden">
+        <div class="absolute inset-0">
+          <!-- Grok Imagine prompt: Aerial view of a large outdoor concert stage being built, cranes and lighting rigs, crew in high-vis vests, twilight sky, epic scale production setup -->
+          <img src="https://picsum.photos/seed/freelancematch-cta/1920/600" alt="" class="w-full h-full object-cover opacity-30" loading="lazy" />
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-r from-navy/95 to-slate/90"></div>
+        <div class="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to get started?</h2>
+          <p class="text-gray-300 mb-8 max-w-xl mx-auto">Join thousands of engineers and production teams who trust Freelance Match to fill crew gaps fast.</p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button type="button" onclick="App.ctaEngineer()" class="px-8 py-4 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal/25">I'm a Freelance Engineer</button>
+            <button type="button" onclick="App.ctaBooker()" class="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-xl transition-all duration-200">I'm a Crew Booker</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==================== ENGINEER PORTAL ==================== -->
+    <div data-view="engineer">
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-white">Engineer Portal</h1>
+            <p class="text-gray-400 mt-2">Manage your profile, availability, rates, and incoming matches.</p>
+          </div>
+          <button type="button" onclick="App.saveEngineerProfile()" class="px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal/25 shrink-0">
+            Save Changes
+          </button>
+        </div>
+
+        <!-- Portal tabs -->
+        <div class="flex flex-wrap gap-2 mb-8 p-1 bg-slate rounded-xl border border-white/10" role="tablist">
+          <button type="button" data-etab="profile" onclick="App.setEngineerTab('profile')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white active">Profile</button>
+          <button type="button" data-etab="availability" onclick="App.setEngineerTab('availability')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Availability</button>
+          <button type="button" data-etab="rates" onclick="App.setEngineerTab('rates')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Rates &amp; Terms</button>
+          <button type="button" data-etab="matches" onclick="App.setEngineerTab('matches')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">My Matches</button>
+        </div>
+
+        <!-- Profile tab -->
+        <div id="eng-tab-profile" class="eng-tab-panel">
+          <div class="grid lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1">
+              <div class="bg-slate rounded-2xl border border-white/10 p-6 text-center">
+                <div class="relative w-32 h-32 mx-auto mb-4">
+                  <img id="eng-avatar-preview" src="" alt="Profile photo" class="w-32 h-32 rounded-full object-cover border-2 border-teal/30" />
+                  <label class="absolute bottom-0 right-0 w-9 h-9 bg-teal rounded-full flex items-center justify-center cursor-pointer hover:bg-teal-dark transition-colors shadow-lg">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <input type="file" id="eng-photo-input" accept="image/*" class="hidden" onchange="App.handlePhotoUpload(event)" />
+                  </label>
+                </div>
+                <p class="text-xs text-gray-500">Click camera icon to upload (simulated)</p>
+              </div>
+              <div class="mt-6 bg-slate rounded-2xl border border-white/10 p-6 space-y-3">
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider">Data &amp; Privacy</h3>
+                <button type="button" onclick="App.downloadUserData()" class="w-full px-4 py-2.5 text-sm text-left text-gray-300 hover:text-teal border border-white/10 rounded-lg hover:border-teal/30 transition-colors flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Download my data
+                </button>
+                <button type="button" onclick="App.deleteUserProfile()" class="w-full px-4 py-2.5 text-sm text-left text-red-400 hover:text-red-300 border border-red-500/20 rounded-lg hover:border-red-500/40 transition-colors flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  Delete my profile
+                </button>
+              </div>
+            </div>
+            <div class="lg:col-span-2 space-y-6">
+              <div class="bg-slate rounded-2xl border border-white/10 p-6 space-y-5">
+                <div class="grid sm:grid-cols-2 gap-5">
+                  <div>
+                    <label for="eng-name" class="block text-sm font-medium text-gray-300 mb-1.5">Full name</label>
+                    <input type="text" id="eng-name" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal focus:ring-1 focus:ring-teal outline-none transition-colors" placeholder="Your name" />
+                  </div>
+                  <div>
+                    <label for="eng-location" class="block text-sm font-medium text-gray-300 mb-1.5">Location</label>
+                    <input type="text" id="eng-location" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal focus:ring-1 focus:ring-teal outline-none transition-colors" placeholder="e.g. London, UK" />
+                  </div>
+                </div>
+                <div>
+                  <label for="eng-bio" class="block text-sm font-medium text-gray-300 mb-1.5">Short bio</label>
+                  <textarea id="eng-bio" rows="4" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal focus:ring-1 focus:ring-teal outline-none transition-colors resize-y" placeholder="Tell productions about your experience, credits, and specialties…"></textarea>
+                </div>
+              </div>
+              <div class="bg-slate rounded-2xl border border-white/10 p-6">
+                <h3 class="text-sm font-semibold text-white mb-1">Skills &amp; roles</h3>
+                <p class="text-xs text-gray-500 mb-4">Select all that apply, or add custom skills.</p>
+                <div id="eng-skills-pool" class="flex flex-wrap gap-2 mb-4"></div>
+                <div class="flex gap-2">
+                  <input type="text" id="eng-custom-skill" class="flex-1 px-4 py-2 bg-navy border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-teal outline-none" placeholder="Add custom skill…" onkeydown="if(event.key==='Enter'){event.preventDefault();App.addCustomSkill();}" />
+                  <button type="button" onclick="App.addCustomSkill()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-sm font-medium rounded-lg transition-colors">Add</button>
+                </div>
+              </div>
+              <div class="bg-slate rounded-2xl border border-white/10 p-6">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" id="eng-gdpr-consent" class="mt-1 w-4 h-4 rounded border-white/20 bg-navy text-teal focus:ring-teal focus:ring-offset-0" />
+                  <span class="text-sm text-gray-400">I consent to Freelance Match storing my profile data locally for matching purposes. I have read the <button type="button" onclick="App.openPrivacyPolicy()" class="text-teal hover:underline">Privacy Policy</button> and understand my rights regarding access, rectification, erasure, and portability.</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Availability tab -->
+        <div id="eng-tab-availability" class="eng-tab-panel hidden">
+          <div class="bg-slate rounded-2xl border border-white/10 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h3 class="text-lg font-semibold text-white">Your availability</h3>
+                <p class="text-sm text-gray-400 mt-1">Click days to toggle availability. Green = available to work.</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-teal/35 border border-teal"></span> Available</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-navy border border-white/10"></span> Unavailable</span>
+              </div>
+            </div>
+            <div id="eng-calendar" class="grid sm:grid-cols-2 gap-8"></div>
+          </div>
+        </div>
+
+        <!-- Rates & Terms tab -->
+        <div id="eng-tab-rates" class="eng-tab-panel hidden">
+          <div class="space-y-6">
+            <div class="bg-slate rounded-2xl border border-white/10 p-6">
+              <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-semibold text-white">Day rates by role</h3>
+                <button type="button" onclick="App.addRateRow()" class="px-4 py-2 text-sm bg-teal/20 hover:bg-teal/30 text-teal-light font-medium rounded-lg transition-colors">+ Add role</button>
+              </div>
+              <div id="eng-rates-list" class="space-y-3"></div>
+              <p id="eng-rates-empty" class="hidden text-sm text-gray-500 text-center py-6">No rates added yet. Click "Add role" to set your day rates.</p>
+            </div>
+            <div class="bg-slate rounded-2xl border border-white/10 p-6">
+              <label for="eng-terms" class="block text-sm font-semibold text-white mb-2">Standard Terms &amp; Conditions</label>
+              <textarea id="eng-terms" rows="6" class="w-full px-4 py-3 bg-navy border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-teal outline-none resize-y" placeholder="Payment terms, cancellation policy, overtime rates, travel expenses…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- My Matches tab -->
+        <div id="eng-tab-matches" class="eng-tab-panel hidden">
+          <div id="eng-matches-list" class="space-y-4"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==================== BOOKER PORTAL ==================== -->
+    <div data-view="booker">
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold text-white">Crew Booker Portal</h1>
+          <p class="text-gray-400 mt-2">Search available engineers by date, skills, location, and budget.</p>
+        </div>
+
+        <!-- Search filters -->
+        <div class="bg-slate rounded-2xl border border-white/10 p-6 mb-8">
+          <h2 class="text-lg font-semibold text-white mb-5">Search filters</h2>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div>
+              <label class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                <input type="checkbox" id="booker-use-range" class="w-4 h-4 rounded text-teal bg-navy border-white/20" onchange="App.toggleDateRange()" />
+                Use date range
+              </label>
+              <div class="space-y-2">
+                <input type="date" id="booker-date-start" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" />
+                <input type="date" id="booker-date-end" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none hidden" />
+              </div>
+            </div>
+            <div>
+              <label for="booker-location" class="block text-sm font-medium text-gray-300 mb-2">Location</label>
+              <input type="text" id="booker-location" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none" placeholder="e.g. London, Manchester…" />
+            </div>
+            <div>
+              <label for="booker-max-rate" class="block text-sm font-medium text-gray-300 mb-2">Max day rate: <span id="booker-rate-label" class="text-teal">£1000</span></label>
+              <input type="range" id="booker-max-rate" min="200" max="1000" step="10" value="1000" class="w-full h-2 bg-navy rounded-lg appearance-none cursor-pointer accent-teal" oninput="document.getElementById('booker-rate-label').textContent='£'+this.value" />
+              <p class="text-xs text-gray-500 mt-1">Rates compared in GBP equivalent for demo</p>
+            </div>
+          </div>
+          <div class="mt-5">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Skills / roles needed</label>
+            <div id="booker-skills-pool" class="flex flex-wrap gap-2"></div>
+          </div>
+          <button type="button" onclick="App.runBookerSearch()" class="mt-6 w-full sm:w-auto px-8 py-3.5 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal/25 flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            Search Available Engineers
+          </button>
+        </div>
+
+        <!-- Results -->
+        <div id="booker-results-header" class="hidden mb-5 flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-white"><span id="booker-results-count">0</span> engineers found</h2>
+        </div>
+        <div id="booker-results" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <div id="booker-empty" class="hidden bg-slate rounded-2xl border border-white/10 p-12 text-center">
+          <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <h3 class="text-lg font-semibold text-white mb-2">No results yet</h3>
+          <p class="text-sm text-gray-400 max-w-md mx-auto">Set your search criteria above and click "Search Available Engineers" to find matching crew.</p>
+        </div>
+        <div id="booker-no-match" class="hidden bg-slate rounded-2xl border border-white/10 p-12 text-center">
+          <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <h3 class="text-lg font-semibold text-white mb-2">No matching engineers</h3>
+          <p class="text-sm text-gray-400 max-w-md mx-auto">Try broadening your skills filter, extending the date range, or increasing your max day rate.</p>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="bg-slate border-t border-white/10 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div class="flex flex-col md:flex-row justify-between items-start gap-8">
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-7 h-7 text-teal" viewBox="0 0 36 36" fill="none"><path d="M8 14C8 10.6863 10.6863 8 14 8H16V14C16 17.3137 13.3137 20 10 20H8V14Z" fill="currentColor"/><path d="M28 22C28 25.3137 25.3137 28 22 28H20V22C20 18.6863 22.6863 16 26 16H28V22Z" fill="currentColor"/></svg>
+            <span class="font-bold text-white">Freelance<span class="text-teal"> Match</span></span>
+          </div>
+          <p class="text-sm text-gray-400 max-w-xs">Connecting freelance technical crew with productions worldwide.</p>
+        </div>
+        <div class="flex gap-8 text-sm">
+          <button type="button" onclick="App.openPrivacyPolicy()" class="text-gray-400 hover:text-teal transition-colors">Privacy Policy</button>
+          <button type="button" onclick="App.navigate('landing')" class="text-gray-400 hover:text-teal transition-colors">Home</button>
+        </div>
+      </div>
+      <div class="mt-8 pt-6 border-t border-white/10">
+        <p class="text-xs text-gray-500 text-center">Freelance Match is designed to be GDPR compliant and respects global privacy standards (GDPR, CCPA, etc.).</p>
+        <p class="text-xs text-gray-600 text-center mt-2">&copy; 2026 Freelance Match. Demo MVP.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== TOAST CONTAINER ==================== -->
+  <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-2 pointer-events-none" aria-live="polite"></div>
+
+  <!-- ==================== PRIVACY POLICY MODAL ==================== -->
+  <div id="privacy-modal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-slide-up">
+      <div class="sticky top-0 bg-slate border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <h2 id="privacy-title" class="text-xl font-bold text-white">Privacy Policy</h2>
+        <button type="button" onclick="App.closePrivacyPolicy()" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="px-6 py-6 prose prose-invert prose-sm max-w-none text-gray-300 space-y-4 text-sm leading-relaxed">
+        <p><strong class="text-white">Last updated:</strong> July 2026</p>
+        <h3 class="text-white font-semibold text-base">1. Data We Collect</h3>
+        <p>Profile information (name, location, bio, skills, rates, availability), inquiry messages, and demo usage preferences stored locally in your browser.</p>
+        <h3 class="text-white font-semibold text-base">2. Purpose</h3>
+        <p>To match freelance engineers with production bookers, manage availability, and facilitate hiring inquiries.</p>
+        <h3 class="text-white font-semibold text-base">3. Legal Basis</h3>
+        <p>Consent (explicit opt-in before saving data) and legitimate interest in providing the matching service.</p>
+        <h3 class="text-white font-semibold text-base">4. Your Rights</h3>
+        <p>Access, rectification, erasure ("right to be forgotten"), data portability (JSON export), and restriction of processing. Contact: privacy@freelancematch.demo</p>
+        <h3 class="text-white font-semibold text-base">5. Data Retention</h3>
+        <p>Demo data persists in localStorage until you delete your profile or clear browser data.</p>
+        <h3 class="text-white font-semibold text-base">6. Contact</h3>
+        <p>privacy@freelancematch.demo</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ENGINEER PROFILE MODAL ==================== -->
+  <div id="profile-modal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
+      <div class="sticky top-0 bg-slate border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
+        <h2 class="text-xl font-bold text-white">Engineer Profile</h2>
+        <button type="button" onclick="App.closeProfileModal()" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="profile-modal-body" class="p-6"></div>
+    </div>
+  </div>
+
+  <!-- ==================== REQUEST AVAILABILITY MODAL ==================== -->
+  <div id="inquiry-modal" class="fixed inset-0 z-[95] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-lg w-full shadow-2xl animate-slide-up">
+      <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white">Request Availability</h2>
+        <button type="button" onclick="App.closeInquiryModal()" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="inquiry-form" class="p-6 space-y-5" onsubmit="event.preventDefault();App.submitInquiry();">
+        <p class="text-sm text-gray-400">Sending inquiry to <strong id="inquiry-engineer-name" class="text-white"></strong></p>
+        <div>
+          <label for="inquiry-dates" class="block text-sm font-medium text-gray-300 mb-1.5">Proposed dates</label>
+          <input type="text" id="inquiry-dates" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none" placeholder="e.g. 15 Jul – 17 Jul 2026" />
+        </div>
+        <div>
+          <label for="inquiry-message" class="block text-sm font-medium text-gray-300 mb-1.5">Message</label>
+          <textarea id="inquiry-message" rows="4" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none resize-y" placeholder="Brief details about the production, role requirements, and schedule…"></textarea>
+        </div>
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" id="inquiry-consent" class="mt-1 w-4 h-4 rounded text-teal bg-navy border-white/20" />
+          <span class="text-sm text-gray-400">I consent to Freelance Match storing this inquiry locally. I have read the <button type="button" onclick="App.openPrivacyPolicy()" class="text-teal hover:underline">Privacy Policy</button>.</span>
+        </label>
+        <button type="submit" class="w-full px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors">Send Inquiry</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== COOKIE CONSENT ==================== -->
+  <div id="cookie-banner" class="fixed bottom-0 left-0 right-0 z-[80] hidden p-4">
+    <div class="max-w-4xl mx-auto bg-slate border border-white/10 rounded-2xl shadow-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <div class="flex-1">
+        <p class="text-sm text-gray-300"><strong class="text-white">Cookie notice.</strong> This demo uses only essential local storage to save your preferences and profile data. No tracking cookies are used.</p>
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <button type="button" onclick="App.manageCookiePreferences()" class="px-4 py-2 text-sm text-gray-300 hover:text-white border border-white/20 rounded-lg transition-colors">Manage</button>
+        <button type="button" onclick="App.acceptCookies()" class="px-4 py-2 text-sm bg-teal hover:bg-teal-dark text-white font-semibold rounded-lg transition-colors">Accept</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       Freelance Match — Full SPA Application
+       ============================================================ */
+
+    const PREDEFINED_SKILLS = [
+      'Broadcast Engineer', 'Audio Engineer', 'Video Engineer',
+      'Lighting Engineer', 'Rigging & Automation', 'Post-Production Engineer',
+      'IT/Network Engineer', 'Camera Systems Engineer',
+    ];
+
+    const CURRENCY_RATES = { GBP: 1, EUR: 0.86, USD: 1.27 };
+
+    const USER_ID = 'user-me';
+
+    const App = {
+      state: {
+        currentView: 'landing',
+        currentRole: null,
+        hiwTab: 'engineer',
+        engineerTab: 'profile',
+        userProfile: null,
+        engineers: [],
+        inquiries: [],
+        bookerSearch: { skills: [], hasSearched: false },
+        inquiryTargetId: null,
+        lastSearchCriteria: null,
+      },
+
+      /* ---- Init ---- */
+      init() {
+        this.initData();
+        this.loadState();
+        this.bindEvents();
+        this.render();
+        this.showCookieBannerIfNeeded();
+        this.initBookerDates();
+      },
+
+      initData() {
+        if (!localStorage.getItem('fm_engineers')) {
+          localStorage.setItem('fm_engineers', JSON.stringify(this.createSampleEngineers()));
+        }
+        this.state.engineers = JSON.parse(localStorage.getItem('fm_engineers') || '[]');
+        this.state.inquiries = JSON.parse(localStorage.getItem('fm_inquiries') || '[]');
+        this.state.userProfile = this.getUserProfileFromStorage();
+      },
+
+      createSampleEngineers() {
+        const samples = [
+          { id: 'eng-1', name: 'James Mitchell', location: 'London, UK', bio: 'Senior broadcast engineer with 15 years in live sports and news. EVS, Grass Valley, and Sony systems specialist.', avatar: 'https://picsum.photos/seed/james-mitchell/200/200', skills: ['Broadcast Engineer', 'Audio Engineer'], rates: [{ role: 'Broadcast Engineer', rate: 450, currency: 'GBP' }, { role: 'Audio Engineer', rate: 400, currency: 'GBP' }], seed: 3 },
+          { id: 'eng-2', name: 'Sarah Chen', location: 'Manchester, UK', bio: 'Video engineer focused on multi-cam live events and OB trucks. Certified Ross Carbonite and ATEM operator.', avatar: 'https://picsum.photos/seed/sarah-chen/200/200', skills: ['Video Engineer', 'Camera Systems Engineer'], rates: [{ role: 'Video Engineer', rate: 520, currency: 'GBP' }, { role: 'Camera Systems Engineer', rate: 500, currency: 'GBP' }], seed: 7 },
+          { id: 'eng-3', name: 'Marco Rossi', location: 'Bristol, UK', bio: 'Lighting and rigging specialist for concerts, festivals, and arena tours across Europe.', avatar: 'https://picsum.photos/seed/marco-rossi/200/200', skills: ['Lighting Engineer', 'Rigging & Automation'], rates: [{ role: 'Lighting Engineer', rate: 380, currency: 'EUR' }, { role: 'Rigging & Automation', rate: 400, currency: 'EUR' }], seed: 11 },
+          { id: 'eng-4', name: 'Emma Walsh', location: 'Edinburgh, UK', bio: 'IT and network engineer for broadcast facilities. VLAN design, NDI workflows, and remote production setups.', avatar: 'https://picsum.photos/seed/emma-walsh/200/200', skills: ['IT/Network Engineer', 'Broadcast Engineer'], rates: [{ role: 'IT/Network Engineer', rate: 400, currency: 'GBP' }, { role: 'Broadcast Engineer', rate: 420, currency: 'GBP' }], seed: 5 },
+          { id: 'eng-5', name: 'David Okonkwo', location: 'Birmingham, UK', bio: 'Post-production and video engineer. Avid, DaVinci Resolve, and on-set DIT workflows for drama and documentary.', avatar: 'https://picsum.photos/seed/david-okonkwo/200/200', skills: ['Post-Production Engineer', 'Video Engineer'], rates: [{ role: 'Post-Production Engineer', rate: 480, currency: 'GBP' }, { role: 'Video Engineer', rate: 460, currency: 'GBP' }], seed: 13 },
+          { id: 'eng-6', name: 'Lisa Andersson', location: 'Leeds, UK', bio: 'Audio engineer and automation programmer for theatre and live broadcast. DiGiCo, Yamaha, and MA Lighting.', avatar: 'https://picsum.photos/seed/lisa-andersson/200/200', skills: ['Audio Engineer', 'Rigging & Automation'], rates: [{ role: 'Audio Engineer', rate: 420, currency: 'GBP' }], seed: 9 },
+          { id: 'eng-7', name: 'Tom Reynolds', location: 'Cardiff, UK', bio: 'Camera systems engineer with deep RF and cabled camera experience. Cine-style and broadcast builds.', avatar: 'https://picsum.photos/seed/tom-reynolds/200/200', skills: ['Camera Systems Engineer', 'Lighting Engineer'], rates: [{ role: 'Camera Systems Engineer', rate: 390, currency: 'GBP' }, { role: 'Lighting Engineer', rate: 370, currency: 'GBP' }], seed: 17 },
+          { id: 'eng-8', name: 'Priya Sharma', location: 'Glasgow, UK', bio: 'Broadcast and IT engineer for outside broadcasts and flypack deployments. Calm under pressure on tight turnarounds.', avatar: 'https://picsum.photos/seed/priya-sharma/200/200', skills: ['Broadcast Engineer', 'IT/Network Engineer'], rates: [{ role: 'Broadcast Engineer', rate: 550, currency: 'GBP' }, { role: 'IT/Network Engineer', rate: 530, currency: 'GBP' }], seed: 21 },
+        ];
+        return samples.map(s => ({
+          ...s,
+          availability: this.generateAvailability(s.seed),
+          terms: 'Standard day rate applies to 10-hour day. Overtime at 1.5× hourly rate thereafter. 50% deposit required for bookings over 3 days. Cancellation within 48 hours incurs 50% fee.',
+          isSample: true,
+        }));
+      },
+
+      defaultUserProfile() {
+        return {
+          id: USER_ID,
+          name: '',
+          location: '',
+          bio: '',
+          avatar: 'https://picsum.photos/seed/demo-user/200/200',
+          skills: [],
+          availability: [],
+          rates: [],
+          terms: '',
+          gdprConsent: false,
+          isSample: false,
+          saved: false,
+        };
+      },
+
+      getUserProfileFromStorage() {
+        try {
+          const saved = JSON.parse(localStorage.getItem('fm_user_profile') || 'null');
+          return saved ? { ...this.defaultUserProfile(), ...saved } : this.defaultUserProfile();
+        } catch { return this.defaultUserProfile(); }
+      },
+
+      generateAvailability(seed) {
+        const dates = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let i = 0; i <= 60; i++) {
+          if ((seed * i + 7) % 4 !== 0) {
+            const d = new Date(today);
+            d.setDate(d.getDate() + i);
+            dates.push(this.formatDate(d));
+          }
+        }
+        return dates;
+      },
+
+      /* ---- Date helpers ---- */
+      formatDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      },
+
+      parseDate(str) {
+        const [y, m, d] = str.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      },
+
+      formatDateDisplay(str) {
+        return this.parseDate(str).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      },
+
+      getDatesInRange(start, end) {
+        const dates = [];
+        const cur = this.parseDate(start);
+        const last = this.parseDate(end);
+        while (cur <= last) {
+          dates.push(this.formatDate(cur));
+          cur.setDate(cur.getDate() + 1);
+        }
+        return dates;
+      },
+
+      isPastDate(str) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return this.parseDate(str) < today;
+      },
+
+      toGbp(amount, currency) {
+        return Math.round(amount / (CURRENCY_RATES[currency] || 1));
+      },
+
+      currencySymbol(c) {
+        return { GBP: '£', EUR: '€', USD: '$' }[c] || c;
+      },
+
+      escapeHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+      },
+
+      /* ---- Persistence ---- */
+      loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem('fm_app_state') || '{}');
+          if (saved.currentRole) this.state.currentRole = saved.currentRole;
+          if (saved.currentView) this.state.currentView = saved.currentView;
+          if (saved.hiwTab) this.state.hiwTab = saved.hiwTab;
+          if (saved.engineerTab) this.state.engineerTab = saved.engineerTab;
+        } catch { /* ignore */ }
+      },
+
+      saveState() {
+        localStorage.setItem('fm_app_state', JSON.stringify({
+          currentRole: this.state.currentRole,
+          currentView: this.state.currentView,
+          hiwTab: this.state.hiwTab,
+          engineerTab: this.state.engineerTab,
+        }));
+      },
+
+      saveEngineers() {
+        localStorage.setItem('fm_engineers', JSON.stringify(this.state.engineers));
+      },
+
+      saveUserProfileToStorage() {
+        localStorage.setItem('fm_user_profile', JSON.stringify(this.state.userProfile));
+      },
+
+      saveInquiries() {
+        localStorage.setItem('fm_inquiries', JSON.stringify(this.state.inquiries));
+      },
+
+      getAllSearchableEngineers() {
+        const list = [...this.state.engineers];
+        const user = this.state.userProfile;
+        if (user.saved && user.gdprConsent && user.name) {
+          const idx = list.findIndex(e => e.id === USER_ID);
+          if (idx >= 0) list[idx] = user;
+          else list.push(user);
+        }
+        return list;
+      },
+
+      bindEvents() {
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => this.toggleMobileMenu());
+        document.getElementById('role-indicator-cta').addEventListener('click', () => {
+          this.setRole(this.state.currentRole === 'engineer' ? 'booker' : 'engineer');
+        });
+        document.getElementById('privacy-modal').addEventListener('click', e => {
+          if (e.target === e.currentTarget) this.closePrivacyPolicy();
+        });
+        document.getElementById('profile-modal').addEventListener('click', e => {
+          if (e.target === e.currentTarget) this.closeProfileModal();
+        });
+        document.getElementById('inquiry-modal').addEventListener('click', e => {
+          if (e.target === e.currentTarget) this.closeInquiryModal();
+        });
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape') {
+            this.closePrivacyPolicy();
+            this.closeProfileModal();
+            this.closeInquiryModal();
+            this.closeMobileMenu();
+          }
+        });
+      },
+
+      initBookerDates() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const startStr = this.formatDate(tomorrow);
+        const minStr = this.formatDate(today);
+        const start = document.getElementById('booker-date-start');
+        const end = document.getElementById('booker-date-end');
+        if (start) {
+          start.value = startStr;
+          start.min = minStr;
+        }
+        if (end) {
+          end.value = startStr;
+          end.min = minStr;
+        }
+      },
+
+      /* ---- Navigation & roles ---- */
+      navigate(view) {
+        this.state.currentView = view;
+        this.saveState();
+        this.render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+
+      setRole(role) {
+        const prev = this.state.currentRole;
+        this.state.currentRole = role;
+        this.saveState();
+        this.render();
+        if (prev !== role) {
+          this.toast(`Demo role switched to ${role === 'engineer' ? 'Freelance Engineer' : 'Crew Booker'}`, 'success');
+        }
+      },
+
+      ctaEngineer() { this.setRole('engineer'); this.navigate('engineer'); },
+      ctaBooker() { this.setRole('booker'); this.navigate('booker'); },
+
+      setHiwTab(tab) {
+        this.state.hiwTab = tab;
+        this.saveState();
+        this.renderHiwTab();
+      },
+
+      setEngineerTab(tab) {
+        this.state.engineerTab = tab;
+        this.saveState();
+        this.renderEngineerPortal();
+      },
+
+      renderHiwTab() {
+        const isEngineer = this.state.hiwTab === 'engineer';
+        document.getElementById('hiw-engineer').classList.toggle('hidden', !isEngineer);
+        document.getElementById('hiw-booker').classList.toggle('hidden', isEngineer);
+        ['engineer', 'booker'].forEach(t => {
+          const el = document.getElementById(`hiw-tab-${t}`);
+          const active = (t === 'engineer') === isEngineer;
+          el.classList.toggle('bg-teal', active);
+          el.classList.toggle('text-white', active);
+          el.classList.toggle('text-gray-400', !active);
+          el.setAttribute('aria-selected', active);
+        });
+        const cta = document.getElementById('hiw-cta');
+        if (isEngineer) {
+          cta.innerHTML = 'Get started as an Engineer <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>';
+          cta.onclick = () => App.ctaEngineer();
+        } else {
+          cta.innerHTML = 'Start searching for crew <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>';
+          cta.onclick = () => App.ctaBooker();
+        }
+      },
+
+      render() {
+        document.querySelectorAll('[data-view]').forEach(el => {
+          el.classList.toggle('active', el.dataset.view === this.state.currentView);
+        });
+        document.querySelectorAll('.nav-link, .nav-link-mobile').forEach(el => {
+          const active = el.dataset.nav === this.state.currentView;
+          el.classList.toggle('text-teal', active);
+          el.classList.toggle('font-semibold', active);
+          el.classList.toggle('text-gray-300', !active);
+        });
+        document.querySelectorAll('.role-toggle-btn, .role-toggle-btn-mobile').forEach(btn => {
+          const active = btn.dataset.role === this.state.currentRole;
+          btn.classList.toggle('bg-teal', active);
+          btn.classList.toggle('text-white', active);
+          btn.classList.toggle('role-pill-active', active);
+          btn.classList.toggle('text-gray-400', !active);
+          btn.classList.toggle('border-teal/50', active);
+          btn.setAttribute('aria-pressed', active);
+        });
+
+        const indicator = document.getElementById('role-indicator');
+        if (this.state.currentRole) {
+          indicator.style.maxHeight = '60px';
+          indicator.style.opacity = '1';
+          document.getElementById('role-indicator-text').textContent =
+            this.state.currentRole === 'engineer' ? 'Demo mode: Freelance Engineer' : 'Demo mode: Crew Booker';
+          document.getElementById('role-indicator-cta').textContent =
+            this.state.currentRole === 'engineer' ? 'Switch to Crew Booker →' : 'Switch to Freelance Engineer →';
+        } else {
+          indicator.style.maxHeight = '0';
+          indicator.style.opacity = '0';
+        }
+
+        this.renderHiwTab();
+        if (this.state.currentView === 'engineer') this.renderEngineerPortal();
+        if (this.state.currentView === 'booker') this.renderBookerPortal();
+      },
+
+      /* ---- Engineer Portal ---- */
+      renderEngineerPortal() {
+        const p = this.state.userProfile;
+        document.querySelectorAll('.portal-tab').forEach(btn => {
+          const active = btn.dataset.etab === this.state.engineerTab;
+          btn.classList.toggle('active', active);
+          btn.classList.toggle('text-gray-400', !active);
+        });
+        document.querySelectorAll('.eng-tab-panel').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`eng-tab-${this.state.engineerTab}`)?.classList.remove('hidden');
+
+        document.getElementById('eng-avatar-preview').src = p.avatar;
+        document.getElementById('eng-name').value = p.name;
+        document.getElementById('eng-location').value = p.location;
+        document.getElementById('eng-bio').value = p.bio;
+        document.getElementById('eng-terms').value = p.terms;
+        document.getElementById('eng-gdpr-consent').checked = p.gdprConsent;
+
+        this.renderSkillChips('eng-skills-pool', p.skills, true);
+        this.renderCalendar('eng-calendar', p.availability, true, date => this.toggleUserAvailability(date));
+        this.renderRatesList();
+        this.renderMatches();
+      },
+
+      renderSkillChips(containerId, selected, interactive) {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        const allSkills = [...new Set([...PREDEFINED_SKILLS, ...selected])];
+        el.innerHTML = allSkills.map(skill => {
+          const isSel = selected.includes(skill);
+          const cls = `skill-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-all duration-200 ${isSel ? 'selected border-teal' : 'border-white/20 text-gray-400 hover:border-white/40'}`;
+          if (interactive) {
+            return `<button type="button" class="${cls}" data-skill="${this.escapeHtml(skill)}" onclick="App.toggleSkill(this.dataset.skill)">${this.escapeHtml(skill)}</button>`;
+          }
+          return `<span class="${cls}">${this.escapeHtml(skill)}</span>`;
+        }).join('');
+      },
+
+      toggleSkill(skill) {
+        const p = this.state.userProfile;
+        const idx = p.skills.indexOf(skill);
+        if (idx >= 0) p.skills.splice(idx, 1);
+        else p.skills.push(skill);
+        this.renderSkillChips('eng-skills-pool', p.skills, true);
+      },
+
+      toggleBookerSkill(skill) {
+        const skills = this.state.bookerSearch.skills;
+        const idx = skills.indexOf(skill);
+        if (idx >= 0) skills.splice(idx, 1);
+        else skills.push(skill);
+        this.renderSkillChips('booker-skills-pool', skills, true);
+      },
+
+      addCustomSkill() {
+        const input = document.getElementById('eng-custom-skill');
+        const val = input.value.trim();
+        if (!val) return;
+        if (!this.state.userProfile.skills.includes(val)) {
+          this.state.userProfile.skills.push(val);
+        }
+        input.value = '';
+        this.renderSkillChips('eng-skills-pool', this.state.userProfile.skills, true);
+      },
+
+      handlePhotoUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          this.state.userProfile.avatar = ev.target.result;
+          document.getElementById('eng-avatar-preview').src = ev.target.result;
+          this.toast('Photo uploaded (stored locally)', 'success');
+        };
+        reader.readAsDataURL(file);
+      },
+
+      toggleUserAvailability(date) {
+        if (this.isPastDate(date)) return;
+        const avail = this.state.userProfile.availability;
+        const idx = avail.indexOf(date);
+        if (idx >= 0) avail.splice(idx, 1);
+        else avail.push(date);
+        avail.sort();
+        this.renderCalendar('eng-calendar', avail, true, d => this.toggleUserAvailability(d));
+        if (this.state.userProfile.saved) this.saveUserProfileToStorage();
+      },
+
+      renderCalendar(containerId, availableDates, interactive, onToggle) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const months = [new Date(today.getFullYear(), today.getMonth(), 1), new Date(today.getFullYear(), today.getMonth() + 1, 1)];
+        const availSet = new Set(availableDates);
+
+        container.innerHTML = months.map(monthStart => {
+          const year = monthStart.getFullYear();
+          const month = monthStart.getMonth();
+          const monthName = monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+          const firstDay = new Date(year, month, 1).getDay();
+          const offset = firstDay === 0 ? 6 : firstDay - 1;
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+          let cells = '';
+          for (let i = 0; i < offset; i++) cells += '<div></div>';
+          for (let day = 1; day <= daysInMonth; day++) {
+            const d = new Date(year, month, day);
+            const dateStr = this.formatDate(d);
+            const isAvail = availSet.has(dateStr);
+            const isPast = d < today;
+            const base = 'calendar-day w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-sm rounded-lg border transition-all duration-150';
+            const cls = isAvail
+              ? `${base} available cursor-pointer`
+              : `${base} bg-navy border-white/10 ${interactive && !isPast ? 'cursor-pointer hover:border-white/30' : ''} ${isPast ? 'past' : ''}`;
+            if (interactive && !isPast) {
+              cells += `<button type="button" class="${cls}" onclick="App._calToggle('${containerId}','${dateStr}')">${day}</button>`;
+            } else {
+              cells += `<div class="${cls}">${day}</div>`;
+            }
+          }
+
+          return `<div>
+            <h4 class="text-sm font-semibold text-white mb-3">${monthName}</h4>
+            <div class="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 mb-2">
+              <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+            </div>
+            <div class="grid grid-cols-7 gap-1">${cells}</div>
+          </div>`;
+        }).join('');
+
+        this._calCallbacks = this._calCallbacks || {};
+        if (interactive && onToggle) this._calCallbacks[containerId] = onToggle;
+      },
+
+      _calToggle(containerId, date) {
+        if (this._calCallbacks?.[containerId]) this._calCallbacks[containerId](date);
+      },
+
+      renderRatesList() {
+        const list = document.getElementById('eng-rates-list');
+        const empty = document.getElementById('eng-rates-empty');
+        const rates = this.state.userProfile.rates;
+        if (!rates.length) {
+          list.innerHTML = '';
+          empty.classList.remove('hidden');
+          return;
+        }
+        empty.classList.add('hidden');
+        list.innerHTML = rates.map((r, i) => `
+          <div class="flex flex-wrap gap-3 items-center p-4 bg-navy rounded-xl border border-white/10">
+            <select onchange="App.updateRate(${i},'role',this.value)" class="flex-1 min-w-[140px] px-3 py-2 bg-slate border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none">
+              ${PREDEFINED_SKILLS.map(s => `<option value="${s}" ${r.role === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+            <select onchange="App.updateRate(${i},'currency',this.value)" class="px-3 py-2 bg-slate border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none">
+              ${['GBP','EUR','USD'].map(c => `<option value="${c}" ${r.currency === c ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+            <div class="flex items-center gap-1">
+              <span class="text-gray-400 text-sm">${this.currencySymbol(r.currency)}</span>
+              <input type="number" value="${r.rate}" min="0" step="10" onchange="App.updateRate(${i},'rate',this.value)" class="w-24 px-3 py-2 bg-slate border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none" />
+            </div>
+            <button type="button" onclick="App.removeRateRow(${i})" class="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors" aria-label="Remove rate">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        `).join('');
+      },
+
+      addRateRow() {
+        this.state.userProfile.rates.push({ role: PREDEFINED_SKILLS[0], rate: 400, currency: 'GBP' });
+        this.renderRatesList();
+      },
+
+      updateRate(i, field, value) {
+        if (field === 'rate') value = Number(value);
+        this.state.userProfile.rates[i][field] = value;
+      },
+
+      removeRateRow(i) {
+        this.state.userProfile.rates.splice(i, 1);
+        this.renderRatesList();
+      },
+
+      saveEngineerProfile() {
+        const consent = document.getElementById('eng-gdpr-consent').checked;
+        if (!consent) {
+          this.toast('Please accept the privacy consent before saving', 'error');
+          return;
+        }
+        const p = this.state.userProfile;
+        p.name = document.getElementById('eng-name').value.trim();
+        p.location = document.getElementById('eng-location').value.trim();
+        p.bio = document.getElementById('eng-bio').value.trim();
+        p.terms = document.getElementById('eng-terms').value.trim();
+        p.gdprConsent = consent;
+        p.saved = true;
+        p.savedAt = new Date().toISOString();
+
+        if (!p.name) {
+          this.toast('Please enter your name', 'error');
+          return;
+        }
+
+        this.saveUserProfileToStorage();
+        this.toast('Profile saved successfully', 'success');
+      },
+
+      downloadUserData() {
+        const data = {
+          profile: this.state.userProfile,
+          inquiries: this.state.inquiries.filter(i => i.engineerId === USER_ID),
+          exportedAt: new Date().toISOString(),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'freelance-match-my-data.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        this.toast('Data exported as JSON', 'success');
+      },
+
+      deleteUserProfile() {
+        if (!confirm('Delete your profile? This cannot be undone and removes all your saved data.')) return;
+        this.state.userProfile = this.defaultUserProfile();
+        localStorage.removeItem('fm_user_profile');
+        this.state.inquiries = this.state.inquiries.filter(i => i.engineerId !== USER_ID);
+        this.saveInquiries();
+        this.renderEngineerPortal();
+        this.toast('Profile deleted (right to be forgotten)', 'success');
+      },
+
+      renderMatches() {
+        const el = document.getElementById('eng-matches-list');
+        const matches = this.state.inquiries.filter(i => i.engineerId === USER_ID);
+        if (!matches.length) {
+          el.innerHTML = `<div class="bg-slate rounded-2xl border border-white/10 p-12 text-center">
+            <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+            <h3 class="text-lg font-semibold text-white mb-2">No inquiries yet</h3>
+            <p class="text-sm text-gray-400 max-w-md mx-auto">When crew bookers request your availability, they'll appear here. Make sure your profile is saved and you have marked days as available.</p>
+          </div>`;
+          return;
+        }
+        el.innerHTML = matches.map(inq => `
+          <div class="bg-slate rounded-2xl border border-white/10 p-5 hover:border-teal/30 transition-colors">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="font-semibold text-white">${this.escapeHtml(inq.bookerName || 'Crew Booker')}</p>
+                <p class="text-sm text-gray-400 mt-1">${this.escapeHtml(inq.dates)}</p>
+              </div>
+              <span class="text-xs px-2.5 py-1 rounded-full bg-teal/20 text-teal-light font-medium">${new Date(inq.sentAt).toLocaleDateString('en-GB')}</span>
+            </div>
+            <p class="text-sm text-gray-300 mt-3">${this.escapeHtml(inq.message)}</p>
+          </div>
+        `).join('');
+      },
+
+      /* ---- Booker Portal ---- */
+      renderBookerPortal() {
+        this.renderBookerSkills();
+        if (this.state.bookerSearch.hasSearched) {
+          this.renderBookerResults(this.state.bookerSearch.lastResults || []);
+        }
+      },
+
+      renderBookerSkills() {
+        const el = document.getElementById('booker-skills-pool');
+        if (!el) return;
+        const selected = this.state.bookerSearch.skills;
+        el.innerHTML = PREDEFINED_SKILLS.map(skill => {
+          const isSel = selected.includes(skill);
+          const cls = `skill-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-all duration-200 cursor-pointer ${isSel ? 'selected border-teal' : 'border-white/20 text-gray-400 hover:border-white/40'}`;
+          return `<button type="button" class="${cls}" data-skill="${this.escapeHtml(skill)}" onclick="App.toggleBookerSkill(this.dataset.skill)">${this.escapeHtml(skill)}</button>`;
+        }).join('');
+      },
+
+      toggleDateRange() {
+        const useRange = document.getElementById('booker-use-range').checked;
+        document.getElementById('booker-date-end').classList.toggle('hidden', !useRange);
+      },
+
+      runBookerSearch() {
+        const useRange = document.getElementById('booker-use-range').checked;
+        const dateStart = document.getElementById('booker-date-start').value;
+        const dateEnd = useRange ? document.getElementById('booker-date-end').value : dateStart;
+        const location = document.getElementById('booker-location').value.trim().toLowerCase();
+        const maxRate = Number(document.getElementById('booker-max-rate').value);
+        const skills = [...this.state.bookerSearch.skills];
+
+        if (!dateStart) {
+          this.toast('Please select a date', 'error');
+          return;
+        }
+        if (skills.length === 0) {
+          this.toast('Please select at least one skill', 'error');
+          return;
+        }
+
+        const requiredDates = dateStart === dateEnd ? [dateStart] : this.getDatesInRange(dateStart, dateEnd);
+        const results = this.matchEngineers({ skills, requiredDates, location, maxRate });
+
+        this.state.bookerSearch.hasSearched = true;
+        this.state.bookerSearch.lastResults = results;
+        this.state.lastSearchCriteria = { skills, requiredDates, location, maxRate };
+        this.renderBookerResults(results);
+        this.toast(`Found ${results.length} matching engineer${results.length !== 1 ? 's' : ''}`, results.length ? 'success' : 'info');
+      },
+
+      matchEngineers({ skills, requiredDates, location, maxRate }) {
+        return this.getAllSearchableEngineers()
+          .filter(eng => {
+            const matchedSkills = skills.filter(s => eng.skills.includes(s));
+            if (!matchedSkills.length) return false;
+            const availSet = new Set(eng.availability || []);
+            if (!requiredDates.every(d => availSet.has(d))) return false;
+            if (location && !eng.location.toLowerCase().includes(location)) return false;
+            const bestRate = this.getBestRateForSkills(eng, matchedSkills);
+            if (bestRate && this.toGbp(bestRate.rate, bestRate.currency) > maxRate) return false;
+            return true;
+          })
+          .map(eng => {
+            const matchedSkills = skills.filter(s => eng.skills.includes(s));
+            const bestRate = this.getBestRateForSkills(eng, matchedSkills);
+            return { ...eng, matchedSkills, bestRate, matchScore: matchedSkills.length };
+          })
+          .sort((a, b) => {
+            if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+            const rateA = a.bestRate ? this.toGbp(a.bestRate.rate, a.bestRate.currency) : 9999;
+            const rateB = b.bestRate ? this.toGbp(b.bestRate.rate, b.bestRate.currency) : 9999;
+            return rateA - rateB;
+          });
+      },
+
+      getBestRateForSkills(eng, skills) {
+        const matching = (eng.rates || []).filter(r => skills.includes(r.role));
+        if (!matching.length) return null;
+        return matching.reduce((best, r) => {
+          const gbp = this.toGbp(r.rate, r.currency);
+          const bestGbp = this.toGbp(best.rate, best.currency);
+          return gbp < bestGbp ? r : best;
+        });
+      },
+
+      renderBookerResults(results) {
+        const grid = document.getElementById('booker-results');
+        const empty = document.getElementById('booker-empty');
+        const noMatch = document.getElementById('booker-no-match');
+        const header = document.getElementById('booker-results-header');
+
+        empty.classList.add('hidden');
+        noMatch.classList.add('hidden');
+        header.classList.add('hidden');
+
+        if (!this.state.bookerSearch.hasSearched) {
+          empty.classList.remove('hidden');
+          grid.innerHTML = '';
+          return;
+        }
+
+        if (!results.length) {
+          noMatch.classList.remove('hidden');
+          grid.innerHTML = '';
+          return;
+        }
+
+        header.classList.remove('hidden');
+        document.getElementById('booker-results-count').textContent = results.length;
+
+        const criteria = this.state.lastSearchCriteria;
+        grid.innerHTML = results.map(eng => {
+          const rate = eng.bestRate;
+          const rateStr = rate ? `${this.currencySymbol(rate.currency)}${rate.rate}/day` : 'Rate on request';
+          const skillTags = eng.skills.map(s => {
+            const matched = eng.matchedSkills.includes(s);
+            return `<span class="px-2 py-0.5 text-xs rounded-full ${matched ? 'bg-teal/20 text-teal-light border border-teal/30' : 'bg-white/5 text-gray-500 border border-white/10'}">${this.escapeHtml(s)}</span>`;
+          }).join('');
+
+          return `<article class="bg-slate rounded-2xl border border-white/10 overflow-hidden hover:border-teal/40 hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/20">
+            <div class="p-5">
+              <div class="flex items-center gap-4 mb-4">
+                <img src="${eng.avatar}" alt="" class="w-14 h-14 rounded-full object-cover border-2 border-teal/20" />
+                <div class="min-w-0">
+                  <h3 class="font-semibold text-white truncate">${this.escapeHtml(eng.name)}</h3>
+                  <p class="text-sm text-gray-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                    ${this.escapeHtml(eng.location)}
+                  </p>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-1.5 mb-4">${skillTags}</div>
+              <div class="flex items-center justify-between text-sm mb-3">
+                <span class="text-gray-400">Day rate</span>
+                <span class="font-semibold text-teal-light">${rateStr}</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-green-400 mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                Available ${criteria.requiredDates.length > 1 ? 'all selected dates' : 'on ' + this.formatDateDisplay(criteria.requiredDates[0])}
+              </div>
+              <p class="text-sm text-gray-400 line-clamp-2 mb-4">${this.escapeHtml(eng.bio)}</p>
+              <button type="button" onclick="App.openProfileModal('${eng.id}')" class="w-full px-4 py-2.5 bg-white/10 hover:bg-teal/20 hover:text-teal-light text-sm font-semibold rounded-lg transition-colors border border-white/10 hover:border-teal/30">
+                View Full Profile
+              </button>
+            </div>
+          </article>`;
+        }).join('');
+      },
+
+      /* ---- Profile & Inquiry Modals ---- */
+      openProfileModal(id) {
+        const eng = this.getAllSearchableEngineers().find(e => e.id === id);
+        if (!eng) return;
+        const body = document.getElementById('profile-modal-body');
+        const ratesRows = (eng.rates || []).map(r =>
+          `<tr class="border-b border-white/10"><td class="py-2 text-gray-300">${this.escapeHtml(r.role)}</td><td class="py-2 text-right text-teal-light font-medium">${this.currencySymbol(r.currency)}${r.rate}</td></tr>`
+        ).join('');
+
+        body.innerHTML = `
+          <div class="flex items-center gap-5 mb-6">
+            <img src="${eng.avatar}" alt="" class="w-20 h-20 rounded-full object-cover border-2 border-teal/30" />
+            <div>
+              <h3 class="text-2xl font-bold text-white">${this.escapeHtml(eng.name)}</h3>
+              <p class="text-gray-400">${this.escapeHtml(eng.location)}</p>
+              <div class="flex flex-wrap gap-1.5 mt-2">${eng.skills.map(s => `<span class="px-2 py-0.5 text-xs rounded-full bg-teal/20 text-teal-light">${this.escapeHtml(s)}</span>`).join('')}</div>
+            </div>
+          </div>
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">${this.escapeHtml(eng.bio)}</p>
+          <h4 class="text-sm font-semibold text-white uppercase tracking-wider mb-3">Day rates</h4>
+          <table class="w-full text-sm mb-6"><tbody>${ratesRows || '<tr><td class="text-gray-500">No rates listed</td></tr>'}</tbody></table>
+          <h4 class="text-sm font-semibold text-white uppercase tracking-wider mb-3">Availability</h4>
+          <div id="modal-calendar" class="mb-6"></div>
+          <h4 class="text-sm font-semibold text-white uppercase tracking-wider mb-2">Terms &amp; Conditions</h4>
+          <p class="text-sm text-gray-400 mb-6 whitespace-pre-line">${this.escapeHtml(eng.terms || 'No terms provided.')}</p>
+          <button type="button" onclick="App.openInquiryModal('${eng.id}')" class="w-full px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors">Request Availability</button>
+        `;
+
+        this.renderCalendar('modal-calendar', eng.availability || [], false);
+        const modal = document.getElementById('profile-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      closeProfileModal() {
+        document.getElementById('profile-modal').classList.add('hidden');
+        document.getElementById('profile-modal').classList.remove('flex');
+        document.body.style.overflow = '';
+      },
+
+      openInquiryModal(id) {
+        const eng = this.getAllSearchableEngineers().find(e => e.id === id);
+        if (!eng) return;
+        this.state.inquiryTargetId = id;
+        document.getElementById('inquiry-engineer-name').textContent = eng.name;
+        const criteria = this.state.lastSearchCriteria;
+        if (criteria?.requiredDates?.length) {
+          const dates = criteria.requiredDates;
+          document.getElementById('inquiry-dates').value = dates.length === 1
+            ? this.formatDateDisplay(dates[0])
+            : `${this.formatDateDisplay(dates[0])} – ${this.formatDateDisplay(dates[dates.length - 1])}`;
+        }
+        document.getElementById('inquiry-message').value = '';
+        document.getElementById('inquiry-consent').checked = false;
+        this.closeProfileModal();
+        const modal = document.getElementById('inquiry-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      closeInquiryModal() {
+        document.getElementById('inquiry-modal').classList.add('hidden');
+        document.getElementById('inquiry-modal').classList.remove('flex');
+        document.body.style.overflow = '';
+        this.state.inquiryTargetId = null;
+      },
+
+      submitInquiry() {
+        if (!document.getElementById('inquiry-consent').checked) {
+          this.toast('Please accept the privacy consent before sending', 'error');
+          return;
+        }
+        const message = document.getElementById('inquiry-message').value.trim();
+        const dates = document.getElementById('inquiry-dates').value.trim();
+        if (!message || !dates) {
+          this.toast('Please fill in dates and message', 'error');
+          return;
+        }
+        const inquiry = {
+          id: 'inq-' + Date.now(),
+          engineerId: this.state.inquiryTargetId,
+          bookerName: 'Demo Crew Booker',
+          dates,
+          message,
+          sentAt: new Date().toISOString(),
+        };
+        this.state.inquiries.push(inquiry);
+        this.saveInquiries();
+        this.closeInquiryModal();
+        this.toast('Inquiry sent successfully', 'success');
+        if (this.state.currentView === 'engineer' && this.state.engineerTab === 'matches') {
+          this.renderMatches();
+        }
+      },
+
+      /* ---- Mobile menu ---- */
+      toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+        const isOpen = !menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', isOpen);
+        document.getElementById('menu-icon-open').classList.toggle('hidden', !isOpen);
+        document.getElementById('menu-icon-close').classList.toggle('hidden', isOpen);
+        document.getElementById('mobile-menu-btn').setAttribute('aria-expanded', !isOpen);
+      },
+
+      closeMobileMenu() {
+        document.getElementById('mobile-menu').classList.add('hidden');
+        document.getElementById('menu-icon-open').classList.remove('hidden');
+        document.getElementById('menu-icon-close').classList.add('hidden');
+        document.getElementById('mobile-menu-btn').setAttribute('aria-expanded', 'false');
+      },
+
+      /* ---- Toast ---- */
+      toast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const colors = { success: 'border-teal/50 bg-slate', info: 'border-white/20 bg-slate', error: 'border-red-500/50 bg-slate' };
+        const icons = {
+          success: '<svg class="w-5 h-5 text-teal shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>',
+          info: '<svg class="w-5 h-5 text-gray-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>',
+          error: '<svg class="w-5 h-5 text-red-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>',
+        };
+        const el = document.createElement('div');
+        el.className = `toast-enter pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl ${colors[type] || colors.info} max-w-sm`;
+        el.innerHTML = `${icons[type] || icons.info}<span class="text-sm text-gray-200">${message}</span>`;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateX(100%)';
+          el.style.transition = 'all 0.3s ease';
+          setTimeout(() => el.remove(), 300);
+        }, 3500);
+      },
+
+      openPrivacyPolicy() {
+        document.getElementById('privacy-modal').classList.remove('hidden');
+        document.getElementById('privacy-modal').classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      closePrivacyPolicy() {
+        document.getElementById('privacy-modal').classList.add('hidden');
+        document.getElementById('privacy-modal').classList.remove('flex');
+        document.body.style.overflow = '';
+      },
+
+      showCookieBannerIfNeeded() {
+        if (!localStorage.getItem('fm_cookie_consent')) {
+          document.getElementById('cookie-banner').classList.remove('hidden');
+        }
+      },
+
+      acceptCookies() {
+        localStorage.setItem('fm_cookie_consent', JSON.stringify({ essential: true, acceptedAt: new Date().toISOString() }));
+        document.getElementById('cookie-banner').classList.add('hidden');
+        this.toast('Cookie preferences saved', 'success');
+      },
+
+      manageCookiePreferences() {
+        this.openPrivacyPolicy();
+        this.toast('Only essential storage is used in this demo', 'info');
+      },
+    };
+
+    document.addEventListener('DOMContentLoaded', () => App.init());
+  </script>
+</body>
+</html>
