@@ -55,6 +55,8 @@
     .save-dirty { box-shadow: 0 0 0 2px #14B8A6, 0 0 16px rgba(20, 184, 166, 0.4); animation: pulse-save 2s ease-in-out infinite; }
     @keyframes pulse-save { 0%, 100% { box-shadow: 0 0 0 2px #14B8A6, 0 0 12px rgba(20, 184, 166, 0.3); } 50% { box-shadow: 0 0 0 2px #2DD4BF, 0 0 20px rgba(45, 212, 191, 0.5); } }
     .search-loading { opacity: 0.5; pointer-events: none; }
+    .notif-panel-enter { animation: slideUp 0.2s ease-out forwards; }
+    .notif-unread { background: rgba(20, 184, 166, 0.08); border-left: 3px solid #14B8A6; }
   </style>
 </head>
 <body class="bg-navy text-gray-100 font-sans antialiased min-h-screen flex flex-col">
@@ -83,6 +85,21 @@
           <button type="button" onclick="App.navigate('landing')" class="nav-link text-sm text-gray-300 hover:text-teal transition-colors" data-nav="landing">Home</button>
           <button type="button" onclick="App.navigate('engineer')" class="nav-link text-sm text-gray-300 hover:text-teal transition-colors" data-nav="engineer">Engineer Portal</button>
           <button type="button" onclick="App.navigate('booker')" class="nav-link text-sm text-gray-300 hover:text-teal transition-colors" data-nav="booker">Booker Portal</button>
+        </div>
+
+        <!-- Notifications -->
+        <div class="relative hidden sm:block">
+          <button type="button" id="notif-btn" onclick="App.toggleNotificationsPanel()" class="relative p-2 rounded-lg text-gray-300 hover:bg-white/10 hover:text-teal transition-colors" aria-label="Notifications" aria-expanded="false">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-1 text-[10px] font-bold bg-teal text-white rounded-full flex items-center justify-center">0</span>
+          </button>
+          <div id="notif-panel" class="hidden absolute right-0 top-full mt-2 w-80 sm:w-96 bg-slate border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden notif-panel-enter z-50">
+            <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-white">Notifications</h3>
+              <button type="button" onclick="App.markAllNotificationsRead()" class="text-xs text-teal hover:text-teal-light transition-colors">Mark all read</button>
+            </div>
+            <div id="notif-list" class="max-h-80 overflow-y-auto"></div>
+          </div>
         </div>
 
         <!-- Role toggle (desktop) -->
@@ -121,6 +138,9 @@
           <button type="button" onclick="App.navigate('landing'); App.closeMobileMenu()" class="nav-link-mobile text-left px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors" data-nav="landing">Home</button>
           <button type="button" onclick="App.navigate('engineer'); App.closeMobileMenu()" class="nav-link-mobile text-left px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors" data-nav="engineer">Engineer Portal</button>
           <button type="button" onclick="App.navigate('booker'); App.closeMobileMenu()" class="nav-link-mobile text-left px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors" data-nav="booker">Booker Portal</button>
+          <button type="button" onclick="App.toggleNotificationsPanel(); App.closeMobileMenu()" class="text-left px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 transition-colors flex items-center gap-2">
+            Notifications <span id="notif-badge-mobile" class="hidden min-w-[1.1rem] h-[1.1rem] px-1 text-[10px] font-bold bg-teal text-white rounded-full flex items-center justify-center">0</span>
+          </button>
         </div>
         <div class="mt-4 pt-4 border-t border-white/10">
           <p class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2 px-3">Demo as</p>
@@ -626,7 +646,11 @@
       </div>
       <div class="mt-8 pt-6 border-t border-white/10">
         <p class="text-xs text-gray-500 text-center">Freelance Match is designed to be GDPR compliant and respects global privacy standards (GDPR, CCPA, etc.).</p>
-        <p class="text-xs text-gray-600 text-center mt-2">&copy; 2026 Freelance Match. Demo MVP.</p>
+        <p class="text-xs text-gray-500 text-center mt-2">
+          <a href="https://adamhenderson-code.github.io/freelance-match/" class="text-teal hover:underline" target="_blank" rel="noopener">Live demo on GitHub Pages</a>
+          <span class="text-gray-600 mx-2">·</span>
+          <span class="text-gray-600">&copy; 2026 Freelance Match. Demo MVP.</span>
+        </p>
       </div>
     </div>
   </footer>
@@ -729,6 +753,8 @@
     const CURRENCY_RATES = { GBP: 1, EUR: 0.86, USD: 1.27 };
 
     const USER_ID = 'user-me';
+    const ENGINEERS_VERSION = 2;
+    const BOOKER_ID = 'demo-booker';
 
     const App = {
       state: {
@@ -739,11 +765,13 @@
         userProfile: null,
         engineers: [],
         inquiries: [],
+        notifications: [],
         bookerSearch: { skills: [], hasSearched: false, sortBy: 'relevance' },
         inquiryTargetId: null,
         lastSearchCriteria: null,
         dirty: false,
         isRendering: false,
+        notifPanelOpen: false,
       },
 
       /* ---- Init ---- */
@@ -757,11 +785,23 @@
       },
 
       initData() {
+        const fresh = this.createSampleEngineers();
+        const storedVersion = parseInt(localStorage.getItem('fm_engineers_version') || '0', 10);
+
         if (!localStorage.getItem('fm_engineers')) {
-          localStorage.setItem('fm_engineers', JSON.stringify(this.createSampleEngineers()));
+          localStorage.setItem('fm_engineers', JSON.stringify(fresh));
+          localStorage.setItem('fm_engineers_version', String(ENGINEERS_VERSION));
+        } else if (storedVersion < ENGINEERS_VERSION) {
+          const existing = JSON.parse(localStorage.getItem('fm_engineers') || '[]');
+          const ids = new Set(existing.map(e => e.id));
+          const merged = [...existing, ...fresh.filter(e => !ids.has(e.id))];
+          localStorage.setItem('fm_engineers', JSON.stringify(merged));
+          localStorage.setItem('fm_engineers_version', String(ENGINEERS_VERSION));
         }
+
         this.state.engineers = JSON.parse(localStorage.getItem('fm_engineers') || '[]');
         this.state.inquiries = JSON.parse(localStorage.getItem('fm_inquiries') || '[]');
+        this.state.notifications = JSON.parse(localStorage.getItem('fm_notifications') || '[]');
         this.state.userProfile = this.getUserProfileFromStorage();
       },
 
@@ -775,6 +815,12 @@
           { id: 'eng-6', name: 'Lisa Andersson', location: 'Leeds, UK', bio: 'Audio engineer and automation programmer for theatre and live broadcast. DiGiCo, Yamaha, and MA Lighting.', avatar: 'https://picsum.photos/seed/lisa-andersson/200/200', skills: ['Audio Engineer', 'Rigging & Automation'], rates: [{ role: 'Audio Engineer', rate: 420, currency: 'GBP' }], seed: 9 },
           { id: 'eng-7', name: 'Tom Reynolds', location: 'Cardiff, UK', bio: 'Camera systems engineer with deep RF and cabled camera experience. Cine-style and broadcast builds.', avatar: 'https://picsum.photos/seed/tom-reynolds/200/200', skills: ['Camera Systems Engineer', 'Lighting Engineer'], rates: [{ role: 'Camera Systems Engineer', rate: 390, currency: 'GBP' }, { role: 'Lighting Engineer', rate: 370, currency: 'GBP' }], seed: 17 },
           { id: 'eng-8', name: 'Priya Sharma', location: 'Glasgow, UK', bio: 'Broadcast and IT engineer for outside broadcasts and flypack deployments. Calm under pressure on tight turnarounds.', avatar: 'https://picsum.photos/seed/priya-sharma/200/200', skills: ['Broadcast Engineer', 'IT/Network Engineer'], rates: [{ role: 'Broadcast Engineer', rate: 550, currency: 'GBP' }, { role: 'IT/Network Engineer', rate: 530, currency: 'GBP' }], seed: 21 },
+          { id: 'eng-9', name: 'Olivier Dubois', location: 'Paris, France', bio: 'Live events broadcast engineer for fashion weeks and major ceremonies. Fluent in French and English; experienced with Euro OB workflows.', avatar: 'https://picsum.photos/seed/olivier-dubois/200/200', skills: ['Broadcast Engineer', 'Video Engineer'], rates: [{ role: 'Broadcast Engineer', rate: 420, currency: 'EUR' }, { role: 'Video Engineer', rate: 400, currency: 'EUR' }], seed: 23 },
+          { id: 'eng-10', name: 'Nina Kowalski', location: 'Berlin, Germany', bio: 'Lighting and video engineer for touring productions and festival stages. GrandMA, Avolites, and Resolume specialist.', avatar: 'https://picsum.photos/seed/nina-kowalski/200/200', skills: ['Lighting Engineer', 'Video Engineer'], rates: [{ role: 'Lighting Engineer', rate: 360, currency: 'EUR' }, { role: 'Video Engineer', rate: 380, currency: 'EUR' }], seed: 27 },
+          { id: 'eng-11', name: "Ryan O'Sullivan", location: 'Dublin, Ireland', bio: 'Audio engineer for live music and broadcast hybrids. FOH and broadcast mix experience on large-scale concert tours.', avatar: 'https://picsum.photos/seed/ryan-osullivan/200/200', skills: ['Audio Engineer', 'Broadcast Engineer'], rates: [{ role: 'Audio Engineer', rate: 410, currency: 'EUR' }], seed: 31 },
+          { id: 'eng-12', name: 'Hannah Brooks', location: 'Newcastle, UK', bio: 'Post-production and graphics engineer for live sports augmentation. Vizrt, Unreal Engine, and AR pipeline integration.', avatar: 'https://picsum.photos/seed/hannah-brooks/200/200', skills: ['Post-Production Engineer', 'Video Engineer'], rates: [{ role: 'Post-Production Engineer', rate: 470, currency: 'GBP' }, { role: 'Video Engineer', rate: 450, currency: 'GBP' }], seed: 35 },
+          { id: 'eng-13', name: 'Carlos Mendez', location: 'Madrid, Spain', bio: 'Camera systems and RF engineer for sports broadcasting. Cabled and wireless camera deployment for stadium events.', avatar: 'https://picsum.photos/seed/carlos-mendez/200/200', skills: ['Camera Systems Engineer', 'Broadcast Engineer'], rates: [{ role: 'Camera Systems Engineer', rate: 370, currency: 'EUR' }, { role: 'Broadcast Engineer', rate: 390, currency: 'EUR' }], seed: 39 },
+          { id: 'eng-14', name: 'Alex Turner', location: 'New York, USA', bio: 'IT/Network and broadcast engineer for US live events. Flypack networking, streaming backends, and remote integration.', avatar: 'https://picsum.photos/seed/alex-turner/200/200', skills: ['IT/Network Engineer', 'Broadcast Engineer'], rates: [{ role: 'IT/Network Engineer', rate: 650, currency: 'USD' }, { role: 'Broadcast Engineer', rate: 680, currency: 'USD' }], seed: 43 },
         ];
         return samples.map(s => ({
           ...s,
@@ -902,6 +948,137 @@
         localStorage.setItem('fm_inquiries', JSON.stringify(this.state.inquiries));
       },
 
+      saveNotifications() {
+        localStorage.setItem('fm_notifications', JSON.stringify(this.state.notifications));
+      },
+
+      addNotification({ type, role, title, message, inquiryId }) {
+        const notif = {
+          id: 'notif-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          type, role, title, message, inquiryId,
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        this.state.notifications.unshift(notif);
+        if (this.state.notifications.length > 50) this.state.notifications.length = 50;
+        this.saveNotifications();
+        this.updateNotificationBadge();
+        if (this.state.notifPanelOpen) this.renderNotificationsList();
+        if (role === this.state.currentRole) {
+          this.toast(title, type.includes('declined') ? 'info' : 'success');
+        }
+        return notif;
+      },
+
+      getNotificationsForRole(role) {
+        if (!role) return this.state.notifications;
+        return this.state.notifications.filter(n => n.role === role);
+      },
+
+      getUnreadCount(role) {
+        return this.getNotificationsForRole(role).filter(n => !n.read).length;
+      },
+
+      updateNotificationBadge() {
+        const role = this.state.currentRole;
+        const count = role ? this.getUnreadCount(role) : 0;
+        ['notif-badge', 'notif-badge-mobile'].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.textContent = count > 9 ? '9+' : count;
+          el.classList.toggle('hidden', count === 0);
+        });
+      },
+
+      toggleNotificationsPanel() {
+        this.state.notifPanelOpen = !this.state.notifPanelOpen;
+        const panel = document.getElementById('notif-panel');
+        const btn = document.getElementById('notif-btn');
+        if (!panel) return;
+        panel.classList.toggle('hidden', !this.state.notifPanelOpen);
+        if (btn) btn.setAttribute('aria-expanded', this.state.notifPanelOpen);
+        if (this.state.notifPanelOpen) this.renderNotificationsList();
+      },
+
+      closeNotificationsPanel() {
+        this.state.notifPanelOpen = false;
+        document.getElementById('notif-panel')?.classList.add('hidden');
+        document.getElementById('notif-btn')?.setAttribute('aria-expanded', 'false');
+      },
+
+      renderNotificationsList() {
+        const el = document.getElementById('notif-list');
+        if (!el) return;
+        const role = this.state.currentRole;
+        const items = this.getNotificationsForRole(role);
+
+        if (!role) {
+          el.innerHTML = `<p class="px-4 py-8 text-sm text-gray-500 text-center">Select a demo role to see notifications.</p>`;
+          return;
+        }
+        if (!items.length) {
+          el.innerHTML = `<p class="px-4 py-8 text-sm text-gray-500 text-center">No notifications yet.</p>`;
+          return;
+        }
+
+        const icons = {
+          inquiry_received: '📩',
+          inquiry_sent: '✉️',
+          inquiry_accepted: '✅',
+          inquiry_declined: '❌',
+          inquiry_responded: '↩️',
+        };
+
+        el.innerHTML = items.slice(0, 20).map(n => `
+          <button type="button" onclick="App.handleNotificationClick('${n.id}')"
+            class="w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors ${n.read ? '' : 'notif-unread'}">
+            <div class="flex gap-3">
+              <span class="text-lg shrink-0">${icons[n.type] || '🔔'}</span>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-white">${this.escapeHtml(n.title)}</p>
+                <p class="text-xs text-gray-400 mt-0.5 line-clamp-2">${this.escapeHtml(n.message)}</p>
+                <p class="text-xs text-gray-600 mt-1">${new Date(n.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            </div>
+          </button>
+        `).join('');
+      },
+
+      handleNotificationClick(id) {
+        const n = this.state.notifications.find(x => x.id === id);
+        if (!n) return;
+        this.markNotificationRead(id);
+        this.closeNotificationsPanel();
+        if (n.role === 'engineer') {
+          this.setRole('engineer');
+          this.setEngineerTab('matches');
+          this.navigate('engineer');
+        } else {
+          this.setRole('booker');
+          this.navigate('booker');
+          setTimeout(() => document.getElementById('booker-inquiries-list')?.scrollIntoView({ behavior: 'smooth' }), 300);
+        }
+      },
+
+      markNotificationRead(id) {
+        const n = this.state.notifications.find(x => x.id === id);
+        if (n) n.read = true;
+        this.saveNotifications();
+        this.updateNotificationBadge();
+        if (this.state.notifPanelOpen) this.renderNotificationsList();
+      },
+
+      markAllNotificationsRead() {
+        const role = this.state.currentRole;
+        this.state.notifications.forEach(n => {
+          if (!role || n.role === role) n.read = true;
+        });
+        this.saveNotifications();
+        this.updateNotificationBadge();
+        this.renderNotificationsList();
+        this.toast('All notifications marked as read', 'info');
+      },
+
       getAllSearchableEngineers() {
         const list = [...this.state.engineers];
         const user = this.state.userProfile;
@@ -932,7 +1109,17 @@
             this.closePrivacyPolicy();
             this.closeProfileModal();
             this.closeInquiryModal();
+            this.closeNotificationsPanel();
             this.closeMobileMenu();
+          }
+        });
+
+        document.addEventListener('click', e => {
+          if (!this.state.notifPanelOpen) return;
+          const panel = document.getElementById('notif-panel');
+          const btn = document.getElementById('notif-btn');
+          if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+            this.closeNotificationsPanel();
           }
         });
 
@@ -1010,6 +1197,8 @@
         if (prev !== role) {
           this.toast(`Demo role switched to ${role === 'engineer' ? 'Freelance Engineer' : 'Crew Booker'}`, 'success');
         }
+        this.updateNotificationBadge();
+        if (this.state.notifPanelOpen) this.renderNotificationsList();
       },
 
       ctaEngineer() { this.setRole('engineer'); this.navigate('engineer'); },
@@ -1085,6 +1274,7 @@
         this.renderHiwTab();
         if (this.state.currentView === 'engineer') this.renderEngineerPortal();
         if (this.state.currentView === 'booker') this.renderBookerPortal();
+        this.updateNotificationBadge();
       },
 
       getProfileCompleteness() {
@@ -1158,7 +1348,27 @@
         this.saveInquiries();
         this.renderMatches();
         this.updateMatchBadge();
-        this.toast(status === 'accepted' ? 'Availability confirmed — booker notified (demo)' : 'Inquiry declined (demo)', status === 'accepted' ? 'success' : 'info');
+
+        const eng = this.getAllSearchableEngineers().find(e => e.id === inq.engineerId);
+        const engName = eng?.name || 'Engineer';
+
+        this.addNotification({
+          type: status === 'accepted' ? 'inquiry_accepted' : 'inquiry_declined',
+          role: 'booker',
+          title: status === 'accepted' ? `${engName} confirmed availability` : `${engName} declined your request`,
+          message: `Dates: ${inq.dates}`,
+          inquiryId: id,
+        });
+
+        if (inq.engineerId === USER_ID) {
+          this.addNotification({
+            type: 'inquiry_responded',
+            role: 'engineer',
+            title: status === 'accepted' ? 'You confirmed availability' : 'You declined an inquiry',
+            message: `From ${inq.bookerName || 'Crew Booker'} — ${inq.dates}`,
+            inquiryId: id,
+          });
+        }
       },
 
       /* ---- Engineer Portal ---- */
@@ -1750,9 +1960,14 @@
           this.toast('Please fill in dates and message', 'error');
           return;
         }
+        const engineerId = this.state.inquiryTargetId;
+        const eng = this.getAllSearchableEngineers().find(e => e.id === engineerId);
+        const engName = eng?.name || 'Engineer';
+
         const inquiry = {
           id: 'inq-' + Date.now(),
-          engineerId: this.state.inquiryTargetId,
+          engineerId,
+          bookerId: BOOKER_ID,
           bookerName: 'Demo Crew Booker',
           dates,
           message,
@@ -1762,7 +1977,25 @@
         this.state.inquiries.push(inquiry);
         this.saveInquiries();
         this.closeInquiryModal();
-        this.toast('Inquiry sent successfully', 'success');
+
+        this.addNotification({
+          type: 'inquiry_sent',
+          role: 'booker',
+          title: 'Inquiry sent',
+          message: `Your request to ${engName} for ${dates} was submitted.`,
+          inquiryId: inquiry.id,
+        });
+
+        if (engineerId === USER_ID) {
+          this.addNotification({
+            type: 'inquiry_received',
+            role: 'engineer',
+            title: 'New availability request',
+            message: `${inquiry.bookerName} requested your availability for ${dates}.`,
+            inquiryId: inquiry.id,
+          });
+        }
+
         this.updateMatchBadge();
         if (this.state.currentView === 'engineer') {
           if (this.state.engineerTab === 'matches') this.renderMatches();
@@ -1774,7 +2007,9 @@
         if (!confirm('Reset all demo data? This clears your profile, inquiries, and restores sample engineers.')) return;
         localStorage.removeItem('fm_user_profile');
         localStorage.removeItem('fm_inquiries');
+        localStorage.removeItem('fm_notifications');
         localStorage.removeItem('fm_engineers');
+        localStorage.removeItem('fm_engineers_version');
         localStorage.removeItem('fm_app_state');
         this.toast('Demo data reset — reloading…', 'info');
         setTimeout(() => location.reload(), 600);
