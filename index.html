@@ -57,9 +57,146 @@
     .search-loading { opacity: 0.5; pointer-events: none; }
     .notif-panel-enter { animation: slideUp 0.2s ease-out forwards; }
     .notif-unread { background: rgba(20, 184, 166, 0.08); border-left: 3px solid #14B8A6; }
+    #access-gate.active { display: flex; }
+    #access-gate { display: none; }
+    #app-shell.hidden { display: none !important; }
+    #admin-view.active { display: block; }
+    #admin-view { display: none; }
   </style>
 </head>
 <body class="bg-navy text-gray-100 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- ==================== ACCESS GATE (invite only) ==================== -->
+  <div id="access-gate" class="fixed inset-0 z-[200] bg-navy flex-col items-center justify-center p-6">
+    <div class="w-full max-w-md animate-slide-up">
+      <div class="text-center mb-8">
+        <svg class="w-12 h-12 text-teal mx-auto mb-4" viewBox="0 0 36 36" fill="none"><path d="M8 14C8 10.6863 10.6863 8 14 8H16V14C16 17.3137 13.3137 20 10 20H8V14Z" fill="currentColor"/><path d="M28 22C28 25.3137 25.3137 28 22 28H20V22C20 18.6863 22.6863 16 26 16H28V22Z" fill="currentColor"/></svg>
+        <h1 class="text-2xl font-bold text-white">Freelance<span class="text-teal"> Match</span></h1>
+        <p class="text-gray-400 mt-2 text-sm">Invite-only access. Enter your code to continue.</p>
+      </div>
+      <form id="access-form" class="bg-slate rounded-2xl border border-white/10 p-6 space-y-4" onsubmit="event.preventDefault();App.redeemInvite();">
+        <div>
+          <label for="access-code" class="block text-sm font-medium text-gray-300 mb-1.5">Invite code</label>
+          <input type="text" id="access-code" autocomplete="off" class="w-full px-4 py-3 bg-navy border border-white/10 rounded-xl text-white text-center text-lg tracking-widest uppercase placeholder-gray-600 focus:border-teal focus:ring-1 focus:ring-teal outline-none" placeholder="FM-XXXX-XXXX" />
+        </div>
+        <div>
+          <label for="access-email" class="block text-sm font-medium text-gray-300 mb-1.5">Email <span class="text-gray-500">(if required by invite)</span></label>
+          <input type="email" id="access-email" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none" placeholder="you@production.com" />
+        </div>
+        <p id="access-error" class="hidden text-sm text-red-400 text-center"></p>
+        <button type="submit" class="w-full px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors">Enter</button>
+      </form>
+      <p class="text-center mt-6 text-sm text-gray-500">
+        <button type="button" onclick="App.showAdminLogin()" class="text-teal hover:underline">Admin sign in</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN PANEL ==================== -->
+  <div id="admin-view" data-view="admin">
+    <div class="min-h-screen bg-navy">
+      <header class="glass border-b border-white/10 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <div>
+            <h1 class="text-xl font-bold text-white">Admin <span class="text-teal">Console</span></h1>
+            <p class="text-xs text-gray-500 mt-0.5">Manage invites and access control</p>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" onclick="App.enterSiteFromAdmin()" class="px-4 py-2 text-sm bg-teal hover:bg-teal-dark text-white font-medium rounded-lg transition-colors">Enter site</button>
+            <button type="button" onclick="App.adminLogout()" class="px-4 py-2 text-sm text-gray-300 hover:text-white border border-white/20 rounded-lg transition-colors">Sign out</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Admin login (shown when not authenticated) -->
+      <div id="admin-login" class="max-w-md mx-auto px-4 py-20">
+        <form class="bg-slate rounded-2xl border border-white/10 p-6 space-y-4" onsubmit="event.preventDefault();App.adminLogin();">
+          <h2 class="text-lg font-semibold text-white">Admin sign in</h2>
+          <input type="password" id="admin-password" class="w-full px-4 py-3 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" placeholder="Admin password" />
+          <p id="admin-login-error" class="hidden text-sm text-red-400"></p>
+          <button type="submit" class="w-full px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl">Sign in</button>
+          <button type="button" onclick="App.hideAdmin()" class="w-full text-sm text-gray-500 hover:text-gray-300">Back to invite gate</button>
+        </form>
+      </div>
+
+      <!-- Admin dashboard -->
+      <div id="admin-dashboard" class="hidden max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        <!-- Stats & toggle -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate rounded-xl border border-white/10 p-5">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Active invites</p>
+            <p id="admin-stat-active" class="text-2xl font-bold text-teal mt-1">0</p>
+          </div>
+          <div class="bg-slate rounded-xl border border-white/10 p-5">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Total redemptions</p>
+            <p id="admin-stat-redemptions" class="text-2xl font-bold text-white mt-1">0</p>
+          </div>
+          <div class="bg-slate rounded-xl border border-white/10 p-5">
+            <p class="text-xs text-gray-500 uppercase tracking-wider">Revoked</p>
+            <p id="admin-stat-revoked" class="text-2xl font-bold text-red-400 mt-1">0</p>
+          </div>
+          <div class="bg-slate rounded-xl border border-white/10 p-5 flex flex-col justify-between">
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wider">Invite-only mode</p>
+              <p id="admin-mode-label" class="text-sm text-gray-300 mt-1">Enabled</p>
+            </div>
+            <button type="button" id="admin-toggle-invite" onclick="App.toggleInviteOnly()" class="mt-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/10 hover:bg-white/20 transition-colors">Toggle</button>
+          </div>
+        </div>
+
+        <!-- Create invite -->
+        <div class="bg-slate rounded-2xl border border-white/10 p-6">
+          <h2 class="text-lg font-semibold text-white mb-4">Create invite</h2>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Label</label>
+              <input type="text" id="admin-invite-label" class="w-full px-3 py-2 bg-navy border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none" placeholder="e.g. BBC Sport pilot" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Lock to email (optional)</label>
+              <input type="email" id="admin-invite-email" class="w-full px-3 py-2 bg-navy border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none" placeholder="user@company.com" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Max uses</label>
+              <input type="number" id="admin-invite-max" value="1" min="1" max="999" class="w-full px-3 py-2 bg-navy border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Expires in (days)</label>
+              <input type="number" id="admin-invite-expiry" placeholder="Never" min="1" class="w-full px-3 py-2 bg-navy border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none" />
+            </div>
+          </div>
+          <button type="button" onclick="App.createInvite()" class="px-6 py-2.5 bg-teal hover:bg-teal-dark text-white text-sm font-semibold rounded-lg transition-colors">Generate invite code</button>
+          <div id="admin-new-code" class="hidden mt-4 p-4 bg-teal/10 border border-teal/30 rounded-xl">
+            <p class="text-sm text-gray-300">Share this code once — it won't be shown again:</p>
+            <p id="admin-new-code-value" class="text-2xl font-mono font-bold text-teal-light tracking-widest mt-2"></p>
+          </div>
+        </div>
+
+        <!-- Invite list -->
+        <div class="bg-slate rounded-2xl border border-white/10 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-white">Invites</h2>
+            <div class="flex gap-2">
+              <button type="button" onclick="App.exportAccessConfig()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-teal border border-white/10 rounded-lg transition-colors">Export access.json</button>
+              <button type="button" onclick="App.showChangePassword()" class="px-4 py-2 text-xs font-medium text-gray-300 hover:text-white border border-white/10 rounded-lg transition-colors">Change password</button>
+            </div>
+          </div>
+          <div id="admin-invites-list" class="space-y-2"></div>
+        </div>
+
+        <!-- Access log -->
+        <div class="bg-slate rounded-2xl border border-white/10 p-6">
+          <h2 class="text-lg font-semibold text-white mb-4">Access log</h2>
+          <div id="admin-access-log" class="space-y-2 max-h-64 overflow-y-auto text-sm"></div>
+        </div>
+
+        <p class="text-xs text-gray-600 text-center pb-8">Default bootstrap invite: <code class="text-gray-500">FM-BETA-2026</code> · Default admin password: <code class="text-gray-500">FreelanceAdmin2026!</code> — change immediately after first login.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== APP SHELL ==================== -->
+  <div id="app-shell" class="hidden flex flex-col min-h-screen">
 
   <!-- ==================== NAVBAR ==================== -->
   <header id="navbar" class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10 transition-all duration-300">
@@ -641,6 +778,8 @@
         <div class="flex flex-wrap gap-6 text-sm">
           <button type="button" onclick="App.openPrivacyPolicy()" class="text-gray-400 hover:text-teal transition-colors">Privacy Policy</button>
           <button type="button" onclick="App.navigate('landing')" class="text-gray-400 hover:text-teal transition-colors">Home</button>
+          <button type="button" onclick="App.userSignOut()" class="text-gray-500 hover:text-amber-400 transition-colors">Sign out</button>
+          <button type="button" onclick="App.showAdmin()" class="text-gray-500 hover:text-teal transition-colors">Admin</button>
           <button type="button" onclick="App.resetDemo()" class="text-gray-500 hover:text-red-400 transition-colors">Reset demo data</button>
         </div>
       </div>
@@ -654,6 +793,8 @@
       </div>
     </div>
   </footer>
+
+  </div><!-- /#app-shell -->
 
   <!-- ==================== TOAST CONTAINER ==================== -->
   <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-2 pointer-events-none" aria-live="polite"></div>
@@ -757,6 +898,12 @@
     const BOOKER_ID = 'demo-booker';
 
     const App = {
+      accessConfig: null,
+      accessSession: null,
+      adminSession: null,
+      accessLog: [],
+      appInitialized: false,
+
       state: {
         currentView: 'landing',
         currentRole: null,
@@ -772,10 +919,447 @@
         dirty: false,
         isRendering: false,
         notifPanelOpen: false,
+        adminPreview: false,
+      },
+
+      /* ---- Access control ---- */
+      async sha256(text) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      },
+
+      async bootstrap() {
+        await this.loadAccessConfig();
+        this.loadAccessSession();
+        this.loadAccessLog();
+        this.loadAdminSession();
+
+        if (this.hasAccess()) {
+          this.showApp();
+          this.init();
+        } else {
+          this.showGate();
+        }
+      },
+
+      async loadAccessConfig() {
+        let remote = null;
+        try {
+          const res = await fetch('access.json', { cache: 'no-store' });
+          if (res.ok) remote = await res.json();
+        } catch (_) { /* offline or missing */ }
+
+        const local = JSON.parse(localStorage.getItem('fm_access_config') || 'null');
+
+        if (!remote && !local) {
+          this.accessConfig = { version: 1, inviteOnlyEnabled: false, adminPasswordHash: '', invites: [] };
+          return;
+        }
+
+        if (!local) {
+          this.accessConfig = remote;
+        } else if (!remote) {
+          this.accessConfig = local;
+        } else {
+          const merged = { ...remote };
+          merged.inviteOnlyEnabled = local.inviteOnlyEnabled ?? remote.inviteOnlyEnabled;
+          merged.adminPasswordHash = local.adminPasswordHash || remote.adminPasswordHash;
+          merged.version = Math.max(local.version || 0, remote.version || 0);
+
+          const inviteMap = new Map((remote.invites || []).map(i => [i.id, { ...i }]));
+          for (const inv of (local.invites || [])) {
+            const existing = inviteMap.get(inv.id);
+            inviteMap.set(inv.id, existing ? { ...existing, ...inv, codeHash: inv.codeHash || existing.codeHash } : inv);
+          }
+          merged.invites = Array.from(inviteMap.values());
+          this.accessConfig = merged;
+        }
+        this.saveAccessConfig();
+      },
+
+      saveAccessConfig() {
+        if (this.accessConfig) localStorage.setItem('fm_access_config', JSON.stringify(this.accessConfig));
+      },
+
+      loadAccessSession() {
+        this.accessSession = JSON.parse(localStorage.getItem('fm_access_session') || 'null');
+      },
+
+      saveAccessSession() {
+        if (this.accessSession) localStorage.setItem('fm_access_session', JSON.stringify(this.accessSession));
+        else localStorage.removeItem('fm_access_session');
+      },
+
+      loadAccessLog() {
+        this.accessLog = JSON.parse(localStorage.getItem('fm_access_log') || '[]');
+      },
+
+      saveAccessLog() {
+        localStorage.setItem('fm_access_log', JSON.stringify(this.accessLog.slice(0, 200)));
+      },
+
+      logAccess(action, detail = {}) {
+        this.accessLog.unshift({ action, detail, at: new Date().toISOString() });
+        this.saveAccessLog();
+        if (document.getElementById('admin-dashboard') && !document.getElementById('admin-dashboard').classList.contains('hidden')) {
+          this.renderAdminAccessLog();
+        }
+      },
+
+      loadAdminSession() {
+        this.adminSession = JSON.parse(localStorage.getItem('fm_admin_session') || 'null');
+      },
+
+      saveAdminSession() {
+        if (this.adminSession) localStorage.setItem('fm_admin_session', JSON.stringify(this.adminSession));
+        else localStorage.removeItem('fm_admin_session');
+      },
+
+      isAdminSessionValid() {
+        if (!this.adminSession?.authenticatedAt) return false;
+        const age = Date.now() - new Date(this.adminSession.authenticatedAt).getTime();
+        return age < 8 * 60 * 60 * 1000;
+      },
+
+      hasAccess() {
+        if (!this.accessConfig) return false;
+        if (!this.accessConfig.inviteOnlyEnabled) return true;
+        if (this.state.adminPreview && this.isAdminSessionValid()) return true;
+        if (!this.accessSession) return false;
+        const invite = (this.accessConfig.invites || []).find(i => i.id === this.accessSession.inviteId);
+        if (!invite || invite.revoked) return false;
+        if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) return false;
+        return true;
+      },
+
+      showGate() {
+        document.getElementById('access-gate').classList.add('active');
+        document.getElementById('app-shell').classList.add('hidden');
+        document.getElementById('admin-view').classList.remove('active');
+      },
+
+      showApp() {
+        document.getElementById('access-gate').classList.remove('active');
+        document.getElementById('admin-view').classList.remove('active');
+        document.getElementById('app-shell').classList.remove('hidden');
+      },
+
+      showAdminLogin() {
+        this.showAdmin();
+      },
+
+      showAdmin() {
+        document.getElementById('access-gate').classList.remove('active');
+        document.getElementById('app-shell').classList.add('hidden');
+        document.getElementById('admin-view').classList.add('active');
+
+        const login = document.getElementById('admin-login');
+        const dash = document.getElementById('admin-dashboard');
+        if (this.isAdminSessionValid()) {
+          login.classList.add('hidden');
+          dash.classList.remove('hidden');
+          this.renderAdminDashboard();
+        } else {
+          login.classList.remove('hidden');
+          dash.classList.add('hidden');
+        }
+      },
+
+      hideAdmin() {
+        document.getElementById('admin-view').classList.remove('active');
+        if (this.hasAccess()) this.showApp();
+        else this.showGate();
+      },
+
+      async redeemInvite() {
+        const errEl = document.getElementById('access-error');
+        const code = (document.getElementById('access-code').value || '').trim().toUpperCase();
+        const email = (document.getElementById('access-email').value || '').trim().toLowerCase();
+        errEl.classList.add('hidden');
+
+        if (!code) {
+          errEl.textContent = 'Please enter an invite code.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        const codeHash = await this.sha256(code);
+        const invite = (this.accessConfig?.invites || []).find(i => i.codeHash === codeHash);
+
+        if (!invite || invite.revoked) {
+          errEl.textContent = 'Invalid or revoked invite code.';
+          errEl.classList.remove('hidden');
+          this.logAccess('denied', { reason: 'invalid_code' });
+          return;
+        }
+        if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) {
+          errEl.textContent = 'This invite has expired.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        if (invite.maxUses && invite.useCount >= invite.maxUses) {
+          errEl.textContent = 'This invite has reached its maximum uses.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        if (invite.email) {
+          if (!email) {
+            errEl.textContent = 'Please enter the email address this invite was issued to.';
+            errEl.classList.remove('hidden');
+            return;
+          }
+          if (email !== invite.email.toLowerCase()) {
+            errEl.textContent = 'This invite is locked to a different email address.';
+            errEl.classList.remove('hidden');
+            return;
+          }
+        }
+
+        invite.useCount = (invite.useCount || 0) + 1;
+        this.saveAccessConfig();
+
+        this.accessSession = {
+          inviteId: invite.id,
+          email: email || invite.email || '',
+          label: invite.label,
+          grantedAt: new Date().toISOString(),
+        };
+        this.saveAccessSession();
+        this.logAccess('granted', { inviteId: invite.id, label: invite.label, email: this.accessSession.email });
+
+        this.showApp();
+        if (!this.appInitialized) this.init();
+        else this.toast('Welcome back', 'success');
+      },
+
+      userSignOut() {
+        if (!confirm('Sign out and return to the invite gate?')) return;
+        this.state.adminPreview = false;
+        this.accessSession = null;
+        this.saveAccessSession();
+        this.logAccess('signed_out', {});
+        document.getElementById('access-code').value = '';
+        document.getElementById('access-email').value = '';
+        this.showGate();
+      },
+
+      async adminLogin() {
+        const errEl = document.getElementById('admin-login-error');
+        const password = document.getElementById('admin-password').value;
+        errEl.classList.add('hidden');
+
+        if (!password) {
+          errEl.textContent = 'Enter the admin password.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        const hash = await this.sha256(password);
+        if (hash !== this.accessConfig.adminPasswordHash) {
+          errEl.textContent = 'Incorrect password.';
+          errEl.classList.remove('hidden');
+          this.logAccess('admin_denied', {});
+          return;
+        }
+
+        this.adminSession = { authenticatedAt: new Date().toISOString() };
+        this.saveAdminSession();
+        document.getElementById('admin-password').value = '';
+        document.getElementById('admin-login').classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        this.renderAdminDashboard();
+        this.logAccess('admin_login', {});
+      },
+
+      adminLogout() {
+        this.adminSession = null;
+        this.state.adminPreview = false;
+        this.saveAdminSession();
+        document.getElementById('admin-password').value = '';
+        document.getElementById('admin-login').classList.remove('hidden');
+        document.getElementById('admin-dashboard').classList.add('hidden');
+        this.logAccess('admin_logout', {});
+        if (!this.hasAccess()) this.showGate();
+      },
+
+      enterSiteFromAdmin() {
+        if (!this.isAdminSessionValid()) {
+          this.toast('Admin session expired — sign in again', 'error');
+          return;
+        }
+        this.state.adminPreview = true;
+        this.showApp();
+        if (!this.appInitialized) this.init();
+        this.navigate('landing');
+      },
+
+      generateInviteCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        const seg = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        return `FM-${seg()}-${seg()}`;
+      },
+
+      async createInvite() {
+        if (!this.isAdminSessionValid()) {
+          this.toast('Admin session expired — sign in again', 'error');
+          return;
+        }
+
+        const label = (document.getElementById('admin-invite-label').value || '').trim() || 'Untitled invite';
+        const email = (document.getElementById('admin-invite-email').value || '').trim();
+        const maxUses = Math.max(1, parseInt(document.getElementById('admin-invite-max').value || '1', 10));
+        const expiryDays = parseInt(document.getElementById('admin-invite-expiry').value || '0', 10);
+
+        const plainCode = this.generateInviteCode();
+        const codeHash = await this.sha256(plainCode);
+        const invite = {
+          id: 'inv-' + Date.now(),
+          codeHash,
+          label,
+          email,
+          revoked: false,
+          maxUses,
+          useCount: 0,
+          createdAt: new Date().toISOString(),
+          expiresAt: expiryDays > 0 ? new Date(Date.now() + expiryDays * 86400000).toISOString() : null,
+        };
+
+        this.accessConfig.invites = this.accessConfig.invites || [];
+        this.accessConfig.invites.unshift(invite);
+        this.saveAccessConfig();
+
+        const codeBox = document.getElementById('admin-new-code');
+        document.getElementById('admin-new-code-value').textContent = plainCode;
+        codeBox.classList.remove('hidden');
+        document.getElementById('admin-invite-label').value = '';
+        document.getElementById('admin-invite-email').value = '';
+        document.getElementById('admin-invite-max').value = '1';
+        document.getElementById('admin-invite-expiry').value = '';
+
+        this.renderAdminDashboard();
+        this.logAccess('invite_created', { inviteId: invite.id, label });
+        this.toast('Invite created — copy the code now', 'success');
+      },
+
+      revokeInvite(id) {
+        if (!this.isAdminSessionValid()) return;
+        const invite = (this.accessConfig.invites || []).find(i => i.id === id);
+        if (!invite) return;
+        if (!confirm(`Revoke invite "${invite.label}"?`)) return;
+        invite.revoked = true;
+        this.saveAccessConfig();
+        this.renderAdminDashboard();
+        this.logAccess('invite_revoked', { inviteId: id, label: invite.label });
+        this.toast('Invite revoked', 'info');
+      },
+
+      toggleInviteOnly() {
+        if (!this.isAdminSessionValid()) return;
+        this.accessConfig.inviteOnlyEnabled = !this.accessConfig.inviteOnlyEnabled;
+        this.saveAccessConfig();
+        this.renderAdminDashboard();
+        this.toast(`Invite-only mode ${this.accessConfig.inviteOnlyEnabled ? 'enabled' : 'disabled'}`, 'info');
+      },
+
+      exportAccessConfig() {
+        if (!this.isAdminSessionValid()) return;
+        const blob = new Blob([JSON.stringify(this.accessConfig, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'access.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        this.toast('access.json downloaded — commit and redeploy to apply globally', 'success');
+      },
+
+      async showChangePassword() {
+        if (!this.isAdminSessionValid()) return;
+        const current = prompt('Enter current admin password:');
+        if (!current) return;
+        if (await this.sha256(current) !== this.accessConfig.adminPasswordHash) {
+          alert('Incorrect current password.');
+          return;
+        }
+        const next = prompt('Enter new admin password (min 8 characters):');
+        if (!next || next.length < 8) {
+          alert('Password must be at least 8 characters.');
+          return;
+        }
+        const confirmPw = prompt('Confirm new password:');
+        if (next !== confirmPw) {
+          alert('Passwords do not match.');
+          return;
+        }
+        this.accessConfig.adminPasswordHash = await this.sha256(next);
+        this.saveAccessConfig();
+        this.toast('Admin password updated locally', 'success');
+      },
+
+      renderAdminDashboard() {
+        const invites = this.accessConfig?.invites || [];
+        const active = invites.filter(i => !i.revoked).length;
+        const revoked = invites.filter(i => i.revoked).length;
+        const redemptions = invites.reduce((n, i) => n + (i.useCount || 0), 0);
+
+        document.getElementById('admin-stat-active').textContent = String(active);
+        document.getElementById('admin-stat-redemptions').textContent = String(redemptions);
+        document.getElementById('admin-stat-revoked').textContent = String(revoked);
+        document.getElementById('admin-mode-label').textContent = this.accessConfig.inviteOnlyEnabled ? 'Enabled' : 'Disabled';
+        document.getElementById('admin-toggle-invite').textContent = this.accessConfig.inviteOnlyEnabled ? 'Disable invite-only' : 'Enable invite-only';
+
+        const list = document.getElementById('admin-invites-list');
+        if (!invites.length) {
+          list.innerHTML = '<p class="text-sm text-gray-500">No invites yet.</p>';
+        } else {
+          list.innerHTML = invites.map(inv => {
+            const status = inv.revoked ? 'Revoked' : (inv.expiresAt && new Date() > new Date(inv.expiresAt) ? 'Expired' : 'Active');
+            const statusClass = inv.revoked ? 'text-red-400' : (status === 'Expired' ? 'text-amber-400' : 'text-teal');
+            const uses = `${inv.useCount || 0}${inv.maxUses ? ' / ' + inv.maxUses : ''}`;
+            const expiry = inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString('en-GB') : 'Never';
+            return `
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-navy/50 rounded-xl border border-white/5">
+                <div class="min-w-0">
+                  <p class="font-medium text-white truncate">${this.escapeHtml(inv.label)}</p>
+                  <p class="text-xs text-gray-500 mt-0.5">${inv.email ? this.escapeHtml(inv.email) + ' · ' : ''}Uses: ${uses} · Expires: ${expiry}</p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="text-xs font-semibold ${statusClass}">${status}</span>
+                  ${!inv.revoked ? `<button type="button" onclick="App.revokeInvite('${inv.id}')" class="text-xs text-red-400 hover:text-red-300">Revoke</button>` : ''}
+                </div>
+              </div>`;
+          }).join('');
+        }
+        this.renderAdminAccessLog();
+      },
+
+      renderAdminAccessLog() {
+        const el = document.getElementById('admin-access-log');
+        if (!this.accessLog.length) {
+          el.innerHTML = '<p class="text-gray-500">No access events yet.</p>';
+          return;
+        }
+        const labels = {
+          granted: 'Access granted',
+          denied: 'Access denied',
+          signed_out: 'User signed out',
+          admin_login: 'Admin signed in',
+          admin_logout: 'Admin signed out',
+          admin_denied: 'Admin login failed',
+          invite_created: 'Invite created',
+          invite_revoked: 'Invite revoked',
+        };
+        el.innerHTML = this.accessLog.slice(0, 50).map(e => `
+          <div class="flex justify-between gap-4 py-2 border-b border-white/5">
+            <span class="text-gray-300">${labels[e.action] || e.action}${e.detail?.label ? ' · ' + this.escapeHtml(e.detail.label) : ''}${e.detail?.email ? ' · ' + this.escapeHtml(e.detail.email) : ''}</span>
+            <span class="text-gray-600 shrink-0">${new Date(e.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        `).join('');
       },
 
       /* ---- Init ---- */
       init() {
+        if (this.appInitialized) return;
+        this.appInitialized = true;
         this.initData();
         this.loadState();
         this.bindEvents();
@@ -1179,6 +1763,10 @@
 
       /* ---- Navigation & roles ---- */
       navigate(view) {
+        if (!this.hasAccess()) {
+          this.showGate();
+          return;
+        }
         if (this.state.dirty && this.state.currentView === 'engineer') {
           if (!confirm('You have unsaved changes. Leave without saving?')) return;
           this.clearDirty();
@@ -1239,7 +1827,7 @@
       },
 
       render() {
-        document.querySelectorAll('[data-view]').forEach(el => {
+        document.querySelectorAll('[data-view]:not(#admin-view)').forEach(el => {
           el.classList.toggle('active', el.dataset.view === this.state.currentView);
         });
         document.querySelectorAll('.nav-link, .nav-link-mobile').forEach(el => {
@@ -2083,7 +2671,7 @@
       },
     };
 
-    document.addEventListener('DOMContentLoaded', () => App.init());
+    document.addEventListener('DOMContentLoaded', () => App.bootstrap());
   </script>
 </body>
 </html>

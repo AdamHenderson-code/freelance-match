@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "inviteOnlyEnabled": true,
+  "adminPasswordHash": "5c997508a3c7db9c62f9950d20412d744214f55a907772431b1376435fb21ac3",
+  "invites": [
+    {
+      "id": "inv-bootstrap",
+      "codeHash": "9e0a37deb65e849a01b3dd3743888dc13a64b1c17a2d71535876b211d556c195",
+      "label": "Bootstrap beta access",
+      "email": "",
+      "revoked": false,
+      "maxUses": 50,
+      "useCount": 0,
+      "createdAt": "2026-07-10T00:00:00.000Z",
+      "expiresAt": null
+    }
+  ]
+}

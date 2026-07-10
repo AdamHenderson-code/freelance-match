@@ -16,6 +16,47 @@ Or open [`index.html`](index.html) locally in any modern browser.
 - **Matching logic** — skill + availability filtering, relevance and rate sorting
 - **GDPR demo** — consent checkboxes, data export, profile deletion, privacy policy
 - **localStorage persistence** — all data survives page refresh
+- **Invite-only access** — gate with redeemable codes and an admin console to manage invites
+
+## Invite-only access & admin
+
+The site runs in **invite-only mode** by default. Visitors must enter a valid invite code before using the portal.
+
+### First-time access (bootstrap credentials)
+
+| Role | Value |
+|------|-------|
+| Invite code | `FM-BETA-2026` |
+| Admin password | `FreelanceAdmin2026!` |
+
+Change the admin password immediately after your first login.
+
+### Entering the site
+
+1. Open the live URL or `index.html`
+2. Enter an invite code on the gate screen (and email if the invite is email-locked)
+3. Use the portal as normal — access persists in your browser until you sign out
+
+### Admin console
+
+1. From the gate, click **Admin sign in** (or **Admin** in the footer when already inside)
+2. Sign in with the admin password
+3. From the dashboard you can:
+   - **Create invites** — generate one-time codes (shown once; only a hash is stored)
+   - **Revoke invites** — disable codes immediately
+   - **Toggle invite-only mode** — turn the gate on or off
+   - **Export access.json** — download updated config for redeploy
+   - **Change password** — update the admin password (stored locally until export)
+
+### Deploying access changes globally
+
+This is a static site — invite state is merged from `access.json` (deployed) and each browser's `localStorage`. To apply admin changes for **all visitors**:
+
+1. Export `access.json` from the admin console
+2. Replace [`access.json`](access.json) in the repo
+3. Commit and push to `main` — GitHub Pages redeploys automatically
+
+> **Note:** Client-side access control is suitable for a private demo or beta. It does not replace server-side authentication for production use.
 
 ## GitHub Pages
 
@@ -25,7 +66,7 @@ The site auto-deploys to GitHub Pages on every push to `main` via [`.github/work
 
 1. Go to **Settings → Pages**
 2. Under **Build and deployment**, set **Source** to **GitHub Actions**
-3. Push to `main` — the workflow publishes `index.html` to Pages
+3. Push to `main` — the workflow publishes `index.html` and `access.json` to Pages
 
 Live URL: `https://<username>.github.io/freelance-match/`
 

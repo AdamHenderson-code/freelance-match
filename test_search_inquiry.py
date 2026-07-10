@@ -60,6 +60,14 @@ def run_tests():
         }""")
         page.wait_for_load_state("networkidle")
 
+        # Invite-only gate
+        page.wait_for_selector("#access-gate.active")
+        page.locator("#access-code").fill("FM-BETA-2026")
+        page.locator("#access-form button[type=submit]").click()
+        page.wait_for_function(
+            "() => !document.getElementById('app-shell').classList.contains('hidden')"
+        )
+
         # Accept cookies if shown
         accept = page.locator("#cookie-banner button:has-text('Accept')")
         if accept.is_visible():
