@@ -52,6 +52,9 @@
     .role-pill-active { box-shadow: 0 0 0 2px #14B8A6, 0 0 12px rgba(20, 184, 166, 0.35); }
     .hero-gradient { background: linear-gradient(135deg, #0F172A 0%, #1E2937 50%, #0F172A 100%); }
     .glass { background: rgba(30, 41, 55, 0.7); backdrop-filter: blur(12px); }
+    .save-dirty { box-shadow: 0 0 0 2px #14B8A6, 0 0 16px rgba(20, 184, 166, 0.4); animation: pulse-save 2s ease-in-out infinite; }
+    @keyframes pulse-save { 0%, 100% { box-shadow: 0 0 0 2px #14B8A6, 0 0 12px rgba(20, 184, 166, 0.3); } 50% { box-shadow: 0 0 0 2px #2DD4BF, 0 0 20px rgba(45, 212, 191, 0.5); } }
+    .search-loading { opacity: 0.5; pointer-events: none; }
   </style>
 </head>
 <body class="bg-navy text-gray-100 font-sans antialiased min-h-screen flex flex-col">
@@ -385,13 +388,31 @@
     <div data-view="engineer">
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
+          <div class="flex-1">
             <h1 class="text-3xl font-bold text-white">Engineer Portal</h1>
             <p class="text-gray-400 mt-2">Manage your profile, availability, rates, and incoming matches.</p>
+            <div id="eng-completeness" class="mt-4 max-w-md hidden">
+              <div class="flex items-center justify-between text-xs mb-1.5">
+                <span class="text-gray-400">Profile completeness</span>
+                <span id="eng-completeness-pct" class="text-teal-light font-semibold">0%</span>
+              </div>
+              <div class="h-2 bg-navy rounded-full overflow-hidden border border-white/10">
+                <div id="eng-completeness-bar" class="h-full bg-gradient-to-r from-teal-dark to-teal transition-all duration-500" style="width:0%"></div>
+              </div>
+            </div>
           </div>
-          <button type="button" onclick="App.saveEngineerProfile()" class="px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal/25 shrink-0">
+          <button type="button" id="eng-save-btn" onclick="App.saveEngineerProfile()" class="px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal/25 shrink-0">
             Save Changes
           </button>
+        </div>
+
+        <!-- Onboarding banner -->
+        <div id="eng-onboarding" class="hidden mb-6 bg-gradient-to-r from-teal/10 to-slate border border-teal/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1">
+            <h3 class="font-semibold text-white">Welcome! Set up your profile to get matched.</h3>
+            <p class="text-sm text-gray-400 mt-1">Add your name, skills, availability, and day rates — then save. Bookers will see you in search results.</p>
+          </div>
+          <button type="button" onclick="App.setEngineerTab('profile')" class="px-5 py-2.5 bg-teal hover:bg-teal-dark text-white text-sm font-semibold rounded-lg transition-colors shrink-0">Get started</button>
         </div>
 
         <!-- Portal tabs -->
@@ -399,7 +420,10 @@
           <button type="button" data-etab="profile" onclick="App.setEngineerTab('profile')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white active">Profile</button>
           <button type="button" data-etab="availability" onclick="App.setEngineerTab('availability')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Availability</button>
           <button type="button" data-etab="rates" onclick="App.setEngineerTab('rates')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Rates &amp; Terms</button>
-          <button type="button" data-etab="matches" onclick="App.setEngineerTab('matches')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">My Matches</button>
+          <button type="button" data-etab="matches" onclick="App.setEngineerTab('matches')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white flex items-center gap-2">
+            My Matches
+            <span id="eng-matches-badge" class="hidden min-w-[1.25rem] h-5 px-1.5 text-xs font-bold bg-teal text-white rounded-full flex items-center justify-center">0</span>
+          </button>
         </div>
 
         <!-- Profile tab -->
@@ -472,9 +496,10 @@
                 <h3 class="text-lg font-semibold text-white">Your availability</h3>
                 <p class="text-sm text-gray-400 mt-1">Click days to toggle availability. Green = available to work.</p>
               </div>
-              <div class="flex items-center gap-3 text-xs">
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-teal/35 border border-teal"></span> Available</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-navy border border-white/10"></span> Unavailable</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="App.markWeekAvailable()" class="px-3 py-1.5 text-xs font-medium bg-teal/20 hover:bg-teal/30 text-teal-light rounded-lg transition-colors">Mark next 7 days</button>
+                <button type="button" onclick="App.clearUpcomingAvailability()" class="px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg transition-colors">Clear upcoming</button>
+                <span class="flex items-center gap-1.5 text-xs ml-1"><span class="w-3 h-3 rounded bg-teal/35 border border-teal"></span> Available</span>
               </div>
             </div>
             <div id="eng-calendar" class="grid sm:grid-cols-2 gap-8"></div>
@@ -549,8 +574,16 @@
         </div>
 
         <!-- Results -->
-        <div id="booker-results-header" class="hidden mb-5 flex items-center justify-between">
+        <div id="booker-results-header" class="hidden mb-5 flex flex-wrap items-center justify-between gap-4">
           <h2 class="text-xl font-semibold text-white"><span id="booker-results-count">0</span> engineers found</h2>
+          <div class="flex items-center gap-2">
+            <label for="booker-sort" class="text-sm text-gray-400">Sort by</label>
+            <select id="booker-sort" onchange="App.applyBookerSort()" class="px-3 py-2 bg-navy border border-white/10 rounded-lg text-white text-sm focus:border-teal outline-none">
+              <option value="relevance">Best match</option>
+              <option value="rate-asc">Rate: low to high</option>
+              <option value="rate-desc">Rate: high to low</option>
+            </select>
+          </div>
         </div>
         <div id="booker-results" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         <div id="booker-empty" class="hidden bg-slate rounded-2xl border border-white/10 p-12 text-center">
@@ -562,6 +595,12 @@
           <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <h3 class="text-lg font-semibold text-white mb-2">No matching engineers</h3>
           <p class="text-sm text-gray-400 max-w-md mx-auto">Try broadening your skills filter, extending the date range, or increasing your max day rate.</p>
+        </div>
+
+        <!-- Sent inquiries -->
+        <div class="mt-12">
+          <h2 class="text-xl font-semibold text-white mb-4">Sent inquiries</h2>
+          <div id="booker-inquiries-list" class="space-y-3"></div>
         </div>
       </section>
     </div>
@@ -579,9 +618,10 @@
           </div>
           <p class="text-sm text-gray-400 max-w-xs">Connecting freelance technical crew with productions worldwide.</p>
         </div>
-        <div class="flex gap-8 text-sm">
+        <div class="flex flex-wrap gap-6 text-sm">
           <button type="button" onclick="App.openPrivacyPolicy()" class="text-gray-400 hover:text-teal transition-colors">Privacy Policy</button>
           <button type="button" onclick="App.navigate('landing')" class="text-gray-400 hover:text-teal transition-colors">Home</button>
+          <button type="button" onclick="App.resetDemo()" class="text-gray-500 hover:text-red-400 transition-colors">Reset demo data</button>
         </div>
       </div>
       <div class="mt-8 pt-6 border-t border-white/10">
@@ -699,9 +739,11 @@
         userProfile: null,
         engineers: [],
         inquiries: [],
-        bookerSearch: { skills: [], hasSearched: false },
+        bookerSearch: { skills: [], hasSearched: false, sortBy: 'relevance' },
         inquiryTargetId: null,
         lastSearchCriteria: null,
+        dirty: false,
+        isRendering: false,
       },
 
       /* ---- Init ---- */
@@ -893,6 +935,40 @@
             this.closeMobileMenu();
           }
         });
+
+        window.addEventListener('beforeunload', e => {
+          if (this.state.dirty) {
+            e.preventDefault();
+            e.returnValue = '';
+          }
+        });
+
+        const engView = document.querySelector('[data-view="engineer"]');
+        engView?.addEventListener('input', e => {
+          if (this.state.isRendering) return;
+          if (e.target.matches('#eng-name, #eng-location, #eng-bio, #eng-terms, #eng-gdpr-consent')) this.markDirty();
+        });
+        engView?.addEventListener('change', e => {
+          if (this.state.isRendering) return;
+          if (e.target.matches('#eng-gdpr-consent, #eng-photo-input')) this.markDirty();
+        });
+      },
+
+      markDirty() {
+        this.state.dirty = true;
+        this.updateSaveButton();
+      },
+
+      clearDirty() {
+        this.state.dirty = false;
+        this.updateSaveButton();
+      },
+
+      updateSaveButton() {
+        const btn = document.getElementById('eng-save-btn');
+        if (!btn) return;
+        btn.classList.toggle('save-dirty', this.state.dirty);
+        btn.textContent = this.state.dirty ? 'Save Changes •' : 'Save Changes';
       },
 
       initBookerDates() {
@@ -916,6 +992,10 @@
 
       /* ---- Navigation & roles ---- */
       navigate(view) {
+        if (this.state.dirty && this.state.currentView === 'engineer') {
+          if (!confirm('You have unsaved changes. Leave without saving?')) return;
+          this.clearDirty();
+        }
         this.state.currentView = view;
         this.saveState();
         this.render();
@@ -1007,8 +1087,83 @@
         if (this.state.currentView === 'booker') this.renderBookerPortal();
       },
 
+      getProfileCompleteness() {
+        const p = this.state.userProfile;
+        const checks = [
+          !!p.name?.trim(),
+          !!p.location?.trim(),
+          !!p.bio?.trim(),
+          p.skills?.length > 0,
+          p.availability?.length > 0,
+          p.rates?.length > 0,
+          !!p.terms?.trim(),
+          p.gdprConsent,
+        ];
+        return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+      },
+
+      renderProfileCompleteness() {
+        const pct = this.getProfileCompleteness();
+        const wrap = document.getElementById('eng-completeness');
+        const bar = document.getElementById('eng-completeness-bar');
+        const label = document.getElementById('eng-completeness-pct');
+        if (!wrap) return;
+        wrap.classList.toggle('hidden', pct >= 100);
+        if (bar) bar.style.width = `${pct}%`;
+        if (label) label.textContent = `${pct}%`;
+      },
+
+      renderOnboardingBanner() {
+        const banner = document.getElementById('eng-onboarding');
+        if (banner) banner.classList.toggle('hidden', this.state.userProfile.saved);
+      },
+
+      updateMatchBadge() {
+        const badge = document.getElementById('eng-matches-badge');
+        if (!badge) return;
+        const pending = this.state.inquiries.filter(i => i.engineerId === USER_ID && i.status === 'pending').length;
+        badge.textContent = pending;
+        badge.classList.toggle('hidden', pending === 0);
+      },
+
+      markWeekAvailable() {
+        const avail = this.state.userProfile.availability;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(today);
+          d.setDate(d.getDate() + i);
+          const str = this.formatDate(d);
+          if (!avail.includes(str)) avail.push(str);
+        }
+        avail.sort();
+        this.markDirty();
+        this.renderCalendar('eng-calendar', avail, true, date => this.toggleUserAvailability(date));
+        this.toast('Next 7 days marked available', 'success');
+      },
+
+      clearUpcomingAvailability() {
+        const today = this.formatDate(new Date());
+        this.state.userProfile.availability = this.state.userProfile.availability.filter(d => d < today);
+        this.markDirty();
+        this.renderCalendar('eng-calendar', this.state.userProfile.availability, true, date => this.toggleUserAvailability(date));
+        this.toast('Upcoming availability cleared', 'info');
+      },
+
+      respondToInquiry(id, status) {
+        const inq = this.state.inquiries.find(i => i.id === id);
+        if (!inq) return;
+        inq.status = status;
+        inq.respondedAt = new Date().toISOString();
+        this.saveInquiries();
+        this.renderMatches();
+        this.updateMatchBadge();
+        this.toast(status === 'accepted' ? 'Availability confirmed — booker notified (demo)' : 'Inquiry declined (demo)', status === 'accepted' ? 'success' : 'info');
+      },
+
       /* ---- Engineer Portal ---- */
       renderEngineerPortal() {
+        this.state.isRendering = true;
         const p = this.state.userProfile;
         document.querySelectorAll('.portal-tab').forEach(btn => {
           const active = btn.dataset.etab === this.state.engineerTab;
@@ -1029,6 +1184,11 @@
         this.renderCalendar('eng-calendar', p.availability, true, date => this.toggleUserAvailability(date));
         this.renderRatesList();
         this.renderMatches();
+        this.renderProfileCompleteness();
+        this.renderOnboardingBanner();
+        this.updateMatchBadge();
+        this.updateSaveButton();
+        this.state.isRendering = false;
       },
 
       renderSkillChips(containerId, selected, interactive) {
@@ -1050,6 +1210,7 @@
         const idx = p.skills.indexOf(skill);
         if (idx >= 0) p.skills.splice(idx, 1);
         else p.skills.push(skill);
+        this.markDirty();
         this.renderSkillChips('eng-skills-pool', p.skills, true);
       },
 
@@ -1069,6 +1230,7 @@
           this.state.userProfile.skills.push(val);
         }
         input.value = '';
+        this.markDirty();
         this.renderSkillChips('eng-skills-pool', this.state.userProfile.skills, true);
       },
 
@@ -1079,6 +1241,7 @@
         reader.onload = ev => {
           this.state.userProfile.avatar = ev.target.result;
           document.getElementById('eng-avatar-preview').src = ev.target.result;
+          this.markDirty();
           this.toast('Photo uploaded (stored locally)', 'success');
         };
         reader.readAsDataURL(file);
@@ -1091,6 +1254,7 @@
         if (idx >= 0) avail.splice(idx, 1);
         else avail.push(date);
         avail.sort();
+        this.markDirty();
         this.renderCalendar('eng-calendar', avail, true, d => this.toggleUserAvailability(d));
         if (this.state.userProfile.saved) this.saveUserProfileToStorage();
       },
@@ -1177,16 +1341,19 @@
 
       addRateRow() {
         this.state.userProfile.rates.push({ role: PREDEFINED_SKILLS[0], rate: 400, currency: 'GBP' });
+        this.markDirty();
         this.renderRatesList();
       },
 
       updateRate(i, field, value) {
         if (field === 'rate') value = Number(value);
         this.state.userProfile.rates[i][field] = value;
+        this.markDirty();
       },
 
       removeRateRow(i) {
         this.state.userProfile.rates.splice(i, 1);
+        this.markDirty();
         this.renderRatesList();
       },
 
@@ -1211,6 +1378,9 @@
         }
 
         this.saveUserProfileToStorage();
+        this.clearDirty();
+        this.renderProfileCompleteness();
+        this.renderOnboardingBanner();
         this.toast('Profile saved successfully', 'success');
       },
 
@@ -1250,18 +1420,34 @@
           </div>`;
           return;
         }
-        el.innerHTML = matches.map(inq => `
+        el.innerHTML = matches.map(inq => {
+          const status = inq.status || 'pending';
+          const statusCls = {
+            pending: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+            accepted: 'bg-green-500/20 text-green-300 border-green-500/30',
+            declined: 'bg-red-500/20 text-red-300 border-red-500/30',
+          }[status];
+          const actions = status === 'pending' ? `
+            <div class="flex gap-2 mt-4 pt-4 border-t border-white/10">
+              <button type="button" onclick="App.respondToInquiry('${inq.id}','accepted')" class="flex-1 px-4 py-2 bg-teal hover:bg-teal-dark text-white text-sm font-semibold rounded-lg transition-colors">Confirm available</button>
+              <button type="button" onclick="App.respondToInquiry('${inq.id}','declined')" class="px-4 py-2 bg-white/10 hover:bg-red-500/20 text-gray-300 hover:text-red-300 text-sm font-medium rounded-lg transition-colors">Decline</button>
+            </div>` : '';
+          return `
           <div class="bg-slate rounded-2xl border border-white/10 p-5 hover:border-teal/30 transition-colors">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p class="font-semibold text-white">${this.escapeHtml(inq.bookerName || 'Crew Booker')}</p>
                 <p class="text-sm text-gray-400 mt-1">${this.escapeHtml(inq.dates)}</p>
               </div>
-              <span class="text-xs px-2.5 py-1 rounded-full bg-teal/20 text-teal-light font-medium">${new Date(inq.sentAt).toLocaleDateString('en-GB')}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2.5 py-1 rounded-full border capitalize ${statusCls}">${status}</span>
+                <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-gray-400">${new Date(inq.sentAt).toLocaleDateString('en-GB')}</span>
+              </div>
             </div>
             <p class="text-sm text-gray-300 mt-3">${this.escapeHtml(inq.message)}</p>
-          </div>
-        `).join('');
+            ${actions}
+          </div>`;
+        }).join('');
       },
 
       /* ---- Booker Portal ---- */
@@ -1269,7 +1455,67 @@
         this.renderBookerSkills();
         if (this.state.bookerSearch.hasSearched) {
           this.renderBookerResults(this.state.bookerSearch.lastResults || []);
+        } else {
+          document.getElementById('booker-empty')?.classList.remove('hidden');
         }
+        this.renderBookerInquiries();
+      },
+
+      sortResults(results, sortBy) {
+        if (sortBy === 'relevance') return [...results];
+        const sorted = [...results];
+        if (sortBy === 'rate-asc') {
+          sorted.sort((a, b) => {
+            const rateA = a.bestRate ? this.toGbp(a.bestRate.rate, a.bestRate.currency) : 9999;
+            const rateB = b.bestRate ? this.toGbp(b.bestRate.rate, b.bestRate.currency) : 9999;
+            return rateA - rateB;
+          });
+        } else if (sortBy === 'rate-desc') {
+          sorted.sort((a, b) => {
+            const rateA = a.bestRate ? this.toGbp(a.bestRate.rate, a.bestRate.currency) : 0;
+            const rateB = b.bestRate ? this.toGbp(b.bestRate.rate, b.bestRate.currency) : 0;
+            return rateB - rateA;
+          });
+        }
+        return sorted;
+      },
+
+      applyBookerSort() {
+        const sortBy = document.getElementById('booker-sort')?.value || 'relevance';
+        this.state.bookerSearch.sortBy = sortBy;
+        const raw = this.state.bookerSearch.rawResults || this.state.bookerSearch.lastResults;
+        if (raw) {
+          const sorted = this.sortResults(raw, sortBy);
+          this.state.bookerSearch.lastResults = sorted;
+          this.renderBookerResults(sorted);
+        }
+      },
+
+      renderBookerInquiries() {
+        const el = document.getElementById('booker-inquiries-list');
+        if (!el) return;
+        const inquiries = [...this.state.inquiries].reverse();
+        if (!inquiries.length) {
+          el.innerHTML = `<div class="bg-slate rounded-xl border border-white/10 p-8 text-center text-sm text-gray-500">No inquiries sent yet. Search for engineers and request availability.</div>`;
+          return;
+        }
+        el.innerHTML = inquiries.map(inq => {
+          const eng = this.getAllSearchableEngineers().find(e => e.id === inq.engineerId);
+          const name = eng?.name || 'Unknown engineer';
+          const status = inq.status || 'pending';
+          const statusCls = { pending: 'text-amber-300', accepted: 'text-green-400', declined: 'text-red-400' }[status];
+          return `<div class="bg-slate rounded-xl border border-white/10 p-4 flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <p class="font-medium text-white">To: ${this.escapeHtml(name)}</p>
+              <p class="text-sm text-gray-400 mt-0.5">${this.escapeHtml(inq.dates)}</p>
+              <p class="text-sm text-gray-500 mt-2 line-clamp-2">${this.escapeHtml(inq.message)}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-xs capitalize font-medium ${statusCls}">${status}</p>
+              <p class="text-xs text-gray-500 mt-1">${new Date(inq.sentAt).toLocaleDateString('en-GB')}</p>
+            </div>
+          </div>`;
+        }).join('');
       },
 
       renderBookerSkills() {
@@ -1305,14 +1551,24 @@
           return;
         }
 
-        const requiredDates = dateStart === dateEnd ? [dateStart] : this.getDatesInRange(dateStart, dateEnd);
-        const results = this.matchEngineers({ skills, requiredDates, location, maxRate });
+        const filters = document.querySelector('[data-view="booker"] .bg-slate.rounded-2xl');
+        filters?.classList.add('search-loading');
 
-        this.state.bookerSearch.hasSearched = true;
-        this.state.bookerSearch.lastResults = results;
-        this.state.lastSearchCriteria = { skills, requiredDates, location, maxRate };
-        this.renderBookerResults(results);
-        this.toast(`Found ${results.length} matching engineer${results.length !== 1 ? 's' : ''}`, results.length ? 'success' : 'info');
+        setTimeout(() => {
+          const requiredDates = dateStart === dateEnd ? [dateStart] : this.getDatesInRange(dateStart, dateEnd);
+          const raw = this.matchEngineers({ skills, requiredDates, location, maxRate });
+          const sortBy = document.getElementById('booker-sort')?.value || 'relevance';
+          const results = this.sortResults(raw, sortBy);
+
+          this.state.bookerSearch.hasSearched = true;
+          this.state.bookerSearch.rawResults = raw;
+          this.state.bookerSearch.lastResults = results;
+          this.state.bookerSearch.sortBy = sortBy;
+          this.state.lastSearchCriteria = { skills, requiredDates, location, maxRate };
+          this.renderBookerResults(results);
+          filters?.classList.remove('search-loading');
+          this.toast(`Found ${results.length} matching engineer${results.length !== 1 ? 's' : ''}`, results.length ? 'success' : 'info');
+        }, 400);
       },
 
       matchEngineers({ skills, requiredDates, location, maxRate }) {
@@ -1500,15 +1756,28 @@
           bookerName: 'Demo Crew Booker',
           dates,
           message,
+          status: 'pending',
           sentAt: new Date().toISOString(),
         };
         this.state.inquiries.push(inquiry);
         this.saveInquiries();
         this.closeInquiryModal();
         this.toast('Inquiry sent successfully', 'success');
-        if (this.state.currentView === 'engineer' && this.state.engineerTab === 'matches') {
-          this.renderMatches();
+        this.updateMatchBadge();
+        if (this.state.currentView === 'engineer') {
+          if (this.state.engineerTab === 'matches') this.renderMatches();
         }
+        if (this.state.currentView === 'booker') this.renderBookerInquiries();
+      },
+
+      resetDemo() {
+        if (!confirm('Reset all demo data? This clears your profile, inquiries, and restores sample engineers.')) return;
+        localStorage.removeItem('fm_user_profile');
+        localStorage.removeItem('fm_inquiries');
+        localStorage.removeItem('fm_engineers');
+        localStorage.removeItem('fm_app_state');
+        this.toast('Demo data reset — reloading…', 'info');
+        setTimeout(() => location.reload(), 600);
       },
 
       /* ---- Mobile menu ---- */
