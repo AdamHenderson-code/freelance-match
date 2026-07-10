@@ -103,7 +103,7 @@ def run_tests():
         modal_name = page.locator("#profile-modal-body h3").inner_text()
         check("Profile modal opens", modal_name == first_name, modal_name)
 
-        page.locator('#profile-modal-body button:has-text("Request Availability")').click()
+        page.locator('#profile-modal-body button:has-text("Request")').click()
         page.wait_for_selector("#inquiry-modal.flex")
         check("Inquiry modal opens", page.locator("#inquiry-modal").is_visible())
 
@@ -145,7 +145,7 @@ def run_tests():
         if page.locator("#booker-results article").count() > 0:
             page.locator("#booker-results article").first.locator('button:has-text("View Full Profile")').click()
             page.wait_for_selector("#profile-modal.flex")
-            page.locator('#profile-modal-body button:has-text("Request Availability")').click()
+            page.locator('#profile-modal-body button:has-text("Request")').click()
             page.wait_for_selector("#inquiry-modal.flex")
             before = page.evaluate("JSON.parse(localStorage.getItem('fm_inquiries') || '[]').length")
             page.locator("#inquiry-consent").uncheck()

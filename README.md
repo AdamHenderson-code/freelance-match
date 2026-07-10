@@ -89,7 +89,8 @@ Live URL: `https://<username>.github.io/freelance-match/`
 1. Click **I'm a Crew Booker** or toggle **Demo as → Booker**
 2. On the **Quick Search** tab, select a date (or range), skills, optional location and max rate
 3. Click **Search Available Engineers** (14 sample profiles available)
-4. Use **View Full Profile** → **Request Availability** to send an inquiry
+4. Use **View Full Profile** → **Request & place rate offer** to send an inquiry with an optional day rate bid
+5. Use **+10% / +15% / +20%** quick premiums on in-demand engineers (listed at £500+/day) to improve acceptance
 
 **Projects & Shifts**
 
@@ -98,13 +99,13 @@ Live URL: `https://<username>.github.io/freelance-match/`
 3. Add shifts with date, start/end times, required roles, and shift details for engineers
 4. Upload supporting documents per shift (call sheets, site maps — stored locally, max 1.5 MB each)
 5. Review the availability bar and engineer avatars on each shift — green means good coverage
-6. Click **View & request** to see matching engineers and send a shift-specific inquiry
+6. Click **View & request** to see matching engineers and send a shift-specific inquiry with a rate offer
 
 **Both flows**
 
 - Watch the **notification bell** for engineer responses
 - Track all sent inquiries in the **Sent inquiries** section
-- Engineers see shift context and can download attached documents from their **My Matches** inbox
+- Engineers see shift context, **day rate offers** (with premium badges), and can download attached documents from their **My Matches** inbox
 
 ### Notifications
 
