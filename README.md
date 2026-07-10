@@ -90,7 +90,7 @@ Live URL: `https://<username>.github.io/freelance-match/`
 2. On the **Quick Search** tab, select a date (or range), skills, optional location and max rate
 3. Click **Search Available Engineers** (14 sample profiles available)
 4. Use **View Full Profile** → **Request & place rate offer** to send an inquiry with an optional day rate bid
-5. Use **+10% / +15% / +20%** quick premiums on in-demand engineers (listed at £500+/day) to improve acceptance
+5. Use **+10% / +15% / +20%** quick premiums when placing rate offers to improve acceptance
 
 **Projects & Shifts**
 

@@ -63,7 +63,7 @@
     .shift-coverage-none { background: linear-gradient(90deg, rgba(239,68,68,0.25) 0%, rgba(30,41,55,0.5) 0%); }
     .category-pill.selected { background: rgba(20,184,166,0.2); border-color: #14B8A6; color: #2DD4BF; }
     .rate-offer-premium { background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(20,184,166,0.08) 100%); }
-    .sought-after-badge { background: linear-gradient(135deg, rgba(245,158,11,0.25) 0%, rgba(251,191,36,0.15) 100%); }
+    .premium-bid-badge { background: linear-gradient(135deg, rgba(245,158,11,0.25) 0%, rgba(251,191,36,0.15) 100%); }
     #access-gate.active { display: flex; }
     #access-gate { display: none; }
     #app-shell.hidden { display: none !important; }
@@ -904,11 +904,8 @@
         <div class="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-4">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h3 class="text-sm font-semibold text-white flex items-center gap-2">
-                Day rate offer
-                <span id="inquiry-sought-after-hint" class="hidden sought-after-badge text-[10px] font-bold uppercase tracking-wider text-amber-200 px-2 py-0.5 rounded-full border border-amber-500/30">In demand</span>
-              </h3>
-              <p class="text-xs text-gray-400 mt-0.5">Bid above their listed rate to secure sought-after engineers.</p>
+              <h3 class="text-sm font-semibold text-white">Day rate offer</h3>
+              <p class="text-xs text-gray-400 mt-0.5">Bid above their listed rate to improve your chances of acceptance.</p>
             </div>
             <label class="flex items-center gap-2 cursor-pointer shrink-0">
               <input type="checkbox" id="inquiry-offer-enabled" checked onchange="App.toggleInquiryRateOffer()" class="w-4 h-4 rounded text-amber-500 bg-navy border-white/20" />
@@ -2993,11 +2990,10 @@
           list.innerHTML = engineers.map(eng => {
             const rate = eng.bestRate;
             const rateStr = rate ? `${this.currencySymbol(rate.currency)}${rate.rate}/day` : 'Rate on request';
-            const sought = this.isSoughtAfter(eng);
             return `<div class="flex flex-wrap items-center gap-4 p-4 bg-navy rounded-xl border border-white/10">
               <img src="${eng.avatar}" alt="" class="w-12 h-12 rounded-full object-cover border-2 border-teal/20" />
               <div class="flex-1 min-w-0">
-                <p class="font-medium text-white flex items-center gap-2 flex-wrap">${this.escapeHtml(eng.name)}${sought ? '<span class="text-[10px] font-bold uppercase text-amber-200 sought-after-badge px-1.5 py-0.5 rounded-full border border-amber-500/30">In demand</span>' : ''}</p>
+                <p class="font-medium text-white">${this.escapeHtml(eng.name)}</p>
                 <p class="text-xs text-gray-500">${this.escapeHtml(eng.location)} · Listed ${rateStr}</p>
                 <div class="flex flex-wrap gap-1 mt-1.5">${eng.matchedSkills.map(s =>
                   `<span class="px-1.5 py-0.5 text-[10px] rounded bg-teal/20 text-teal-light">${this.escapeHtml(s)}</span>`
@@ -3230,16 +3226,6 @@
         return (eng.rates || []).find(r => r.role === role) || null;
       },
 
-      getEngineerTopRateGbp(eng) {
-        const rates = eng.rates || [];
-        if (!rates.length) return 0;
-        return Math.max(...rates.map(r => this.toGbp(r.rate, r.currency)));
-      },
-
-      isSoughtAfter(eng) {
-        return this.getEngineerTopRateGbp(eng) >= 500;
-      },
-
       calcRatePremiumPct(listedAmount, listedCurrency, offerAmount, offerCurrency) {
         if (!listedAmount || !offerAmount) return 0;
         const listedGbp = this.toGbp(listedAmount, listedCurrency);
@@ -3258,7 +3244,6 @@
       initInquiryRateOffer(eng) {
         const roles = this.getInquiryOfferRoles(eng);
         const roleSelect = document.getElementById('inquiry-offer-role');
-        const soughtHint = document.getElementById('inquiry-sought-after-hint');
         const offerEnabled = document.getElementById('inquiry-offer-enabled');
 
         if (!roleSelect) return;
@@ -3283,14 +3268,11 @@
         const currency = listed?.currency || 'GBP';
         document.getElementById('inquiry-offer-currency').value = currency;
 
-        const sought = this.isSoughtAfter(eng);
-        soughtHint?.classList.toggle('hidden', !sought);
         offerEnabled.checked = true;
         this.toggleInquiryRateOffer();
 
         if (listed) {
-          const premium = sought ? 15 : 0;
-          const amount = Math.round(listed.rate * (1 + premium / 100));
+          const amount = listed.rate;
           document.getElementById('inquiry-offer-amount').value = amount;
         } else {
           document.getElementById('inquiry-offer-amount').value = '';
@@ -3438,7 +3420,7 @@
           <p class="text-2xl font-bold text-white mt-1">${sym}${offer.amount}<span class="text-sm font-normal text-gray-400">/day</span></p>
           <p class="text-xs text-gray-500 mt-0.5">${this.escapeHtml(offer.role)}</p>
           ${sub}
-          ${isPremium ? '<span class="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider text-amber-200 sought-after-badge px-2 py-0.5 rounded-full border border-amber-500/30">Premium bid</span>' : ''}
+          ${isPremium ? '<span class="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider text-amber-200 premium-bid-badge px-2 py-0.5 rounded-full border border-amber-500/30">Premium bid</span>' : ''}
         </div>`;
       },
 
@@ -3471,7 +3453,6 @@
         grid.innerHTML = results.map(eng => {
           const rate = eng.bestRate;
           const rateStr = rate ? `${this.currencySymbol(rate.currency)}${rate.rate}/day` : 'Rate on request';
-          const sought = this.isSoughtAfter(eng);
           const skillTags = eng.skills.map(s => {
             const matched = eng.matchedSkills.includes(s);
             return `<span class="px-2 py-0.5 text-xs rounded-full ${matched ? 'bg-teal/20 text-teal-light border border-teal/30' : 'bg-white/5 text-gray-500 border border-white/10'}">${this.escapeHtml(s)}</span>`;
@@ -3482,10 +3463,7 @@
               <div class="flex items-center gap-4 mb-4">
                 <img src="${eng.avatar}" alt="" class="w-14 h-14 rounded-full object-cover border-2 border-teal/20" />
                 <div class="min-w-0">
-                  <div class="flex items-center gap-2">
-                    <h3 class="font-semibold text-white truncate">${this.escapeHtml(eng.name)}</h3>
-                    ${sought ? '<span class="shrink-0 text-[10px] font-bold uppercase tracking-wider text-amber-200 sought-after-badge px-1.5 py-0.5 rounded-full border border-amber-500/30">In demand</span>' : ''}
-                  </div>
+                  <h3 class="font-semibold text-white truncate">${this.escapeHtml(eng.name)}</h3>
                   <p class="text-sm text-gray-400 flex items-center gap-1">
                     <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
                     ${this.escapeHtml(eng.location)}
@@ -3497,7 +3475,7 @@
                 <span class="text-gray-400">Listed day rate</span>
                 <span class="font-semibold text-teal-light">${rateStr}</span>
               </div>
-              ${sought ? '<p class="text-xs text-amber-200/80 mb-3">Offer a premium rate when requesting to improve your chances.</p>' : '<div class="mb-3"></div>'}
+              <div class="mb-3"></div>
               <div class="flex items-center gap-1.5 text-xs text-green-400 mb-4">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                 Available ${criteria.requiredDates.length > 1 ? 'all selected dates' : 'on ' + this.formatDateDisplay(criteria.requiredDates[0])}
