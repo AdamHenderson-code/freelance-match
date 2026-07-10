@@ -599,6 +599,7 @@
           <button type="button" data-etab="profile" onclick="App.setEngineerTab('profile')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white active">Profile</button>
           <button type="button" data-etab="availability" onclick="App.setEngineerTab('availability')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Availability</button>
           <button type="button" data-etab="rates" onclick="App.setEngineerTab('rates')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Rates &amp; Terms</button>
+          <button type="button" data-etab="bookers" onclick="App.setEngineerTab('bookers')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Crew Bookers</button>
           <button type="button" data-etab="matches" onclick="App.setEngineerTab('matches')" class="portal-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white flex items-center gap-2">
             My Matches
             <span id="eng-matches-badge" class="hidden min-w-[1.25rem] h-5 px-1.5 text-xs font-bold bg-teal text-white rounded-full flex items-center justify-center">0</span>
@@ -703,6 +704,18 @@
           </div>
         </div>
 
+        <!-- Crew Bookers tab -->
+        <div id="eng-tab-bookers" class="eng-tab-panel hidden">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 class="text-xl font-semibold text-white">Crew bookers</h2>
+              <p class="text-sm text-gray-400 mt-1">Production bookers with platform access and subscription status.</p>
+            </div>
+            <div id="eng-bookers-filter" class="flex gap-2"></div>
+          </div>
+          <div id="eng-bookers-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
         <!-- My Matches tab -->
         <div id="eng-tab-matches" class="eng-tab-panel hidden">
           <div id="eng-matches-list" class="space-y-4"></div>
@@ -713,9 +726,48 @@
     <!-- ==================== BOOKER PORTAL ==================== -->
     <div data-view="booker">
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-white">Crew Booker Portal</h1>
-          <p class="text-gray-400 mt-2">Plan projects with shifts, see engineer availability, or run a quick search.</p>
+        <div class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-white">Crew Booker Portal</h1>
+            <p class="text-gray-400 mt-2">Plan projects with shifts, see engineer availability, or run a quick search.</p>
+          </div>
+          <button type="button" id="booker-save-btn" onclick="App.saveBookerProfile()" class="px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-all shrink-0">Save profile</button>
+        </div>
+
+        <!-- Booker profile -->
+        <div id="booker-profile-section" class="mb-8 bg-slate rounded-2xl border border-white/10 p-6">
+          <div class="grid lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-3 flex flex-col items-center text-center">
+              <div class="relative w-28 h-28 mb-3">
+                <img id="booker-avatar-preview" src="" alt="Booker profile" class="w-28 h-28 rounded-full object-cover border-2 border-teal/30" />
+                <label class="absolute bottom-0 right-0 w-9 h-9 bg-teal rounded-full flex items-center justify-center cursor-pointer hover:bg-teal-dark transition-colors shadow-lg">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <input type="file" id="booker-photo-input" accept="image/*" class="hidden" onchange="App.handleBookerPhotoUpload(event)" />
+                </label>
+              </div>
+              <p class="text-xs text-gray-500">Upload your photo — visible to engineers</p>
+            </div>
+            <div class="lg:col-span-9 space-y-4">
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="booker-name" class="block text-sm font-medium text-gray-300 mb-1.5">Your name</label>
+                  <input type="text" id="booker-name" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none" placeholder="e.g. Alex Morgan" />
+                </div>
+                <div>
+                  <label for="booker-company" class="block text-sm font-medium text-gray-300 mb-1.5">Production / company</label>
+                  <input type="text" id="booker-company" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none" placeholder="e.g. BBC Sport" />
+                </div>
+              </div>
+              <div>
+                <label for="booker-profile-location" class="block text-sm font-medium text-gray-300 mb-1.5">Location</label>
+                <input type="text" id="booker-profile-location" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none" placeholder="e.g. London, UK" />
+              </div>
+              <div>
+                <label for="booker-bio" class="block text-sm font-medium text-gray-300 mb-1.5">About</label>
+                <textarea id="booker-bio" rows="3" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none resize-y" placeholder="Brief overview of your productions and hiring needs…"></textarea>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Active subscription banner -->
@@ -1129,6 +1181,7 @@
     const USER_ID = 'user-me';
     const ENGINEERS_VERSION = 2;
     const BOOKER_ID = 'demo-booker';
+    const BOOKER_REGISTRY_VERSION = 1;
     const PROJECT_CATEGORIES = [
       'Live Broadcast',
       'Film & Television',
@@ -1171,6 +1224,9 @@
         notifications: [],
         bookerTab: 'search',
         bookerCategoryFilter: 'all',
+        bookerProfile: null,
+        bookerRegistry: [],
+        bookerDirectoryFilter: 'active',
         projects: [],
         selectedProjectId: null,
         shiftFormSkills: [],
@@ -1691,6 +1747,121 @@
         this.state.userProfile = this.getUserProfileFromStorage();
         this.state.projects = JSON.parse(localStorage.getItem('fm_booker_projects') || '[]');
         this.loadBookerSubscription();
+        this.initBookerRegistry();
+        this.state.bookerProfile = this.getBookerProfileFromStorage();
+        this.syncBookerRegistryEntry();
+      },
+
+      defaultBookerProfile() {
+        return {
+          id: BOOKER_ID,
+          name: '',
+          company: '',
+          location: '',
+          bio: '',
+          avatar: 'https://picsum.photos/seed/demo-booker/200/200',
+          saved: false,
+        };
+      },
+
+      getBookerProfileFromStorage() {
+        try {
+          const saved = JSON.parse(localStorage.getItem('fm_booker_profile') || 'null');
+          return saved ? { ...this.defaultBookerProfile(), ...saved } : this.defaultBookerProfile();
+        } catch { return this.defaultBookerProfile(); }
+      },
+
+      saveBookerProfileToStorage() {
+        localStorage.setItem('fm_booker_profile', JSON.stringify(this.state.bookerProfile));
+      },
+
+      createSampleBookers() {
+        const future = (days) => {
+          const d = new Date();
+          d.setDate(d.getDate() + days);
+          return d.toISOString();
+        };
+        const past = (days) => {
+          const d = new Date();
+          d.setDate(d.getDate() - days);
+          return d.toISOString();
+        };
+        return [
+          { id: 'booker-1', name: 'Sarah Pemberton', company: 'Sky Sports OB', location: 'London, UK', bio: 'Lead crew booker for live sports outside broadcasts. Regularly hires broadcast and audio engineers for Premier League and golf coverage.', avatar: 'https://picsum.photos/seed/sarah-pemberton/200/200', isSample: true, subscription: { status: 'active', planName: 'Annual', planId: 'annual', interval: 'year', amount: 399, currency: 'GBP', expiresAt: future(240), startedAt: past(125) } },
+          { id: 'booker-2', name: 'Marcus Reid', company: 'Live Nation UK', location: 'Manchester, UK', bio: 'Books freelance lighting, rigging, and video engineers for arena tours and festival builds.', avatar: 'https://picsum.photos/seed/marcus-reid/200/200', isSample: true, subscription: { status: 'active', planName: 'Monthly', planId: 'monthly', interval: 'month', amount: 49, currency: 'GBP', expiresAt: future(18), startedAt: past(12) } },
+          { id: 'booker-3', name: 'Elena Vasquez', company: 'Pinewood Studios', location: 'Iver, UK', bio: 'Production coordinator for drama and feature projects. Sources post-production and IT/network engineers.', avatar: 'https://picsum.photos/seed/elena-vasquez/200/200', isSample: true, subscription: { status: 'expired', planName: 'Monthly', planId: 'monthly', interval: 'month', amount: 49, currency: 'GBP', expiresAt: past(14), startedAt: past(44) } },
+          { id: 'booker-4', name: 'Tom Fletcher', company: 'ITV Daytime', location: 'Leeds, UK', bio: 'Daytime TV booker for studio and gallery crew. Previously active on Freelance Match.', avatar: 'https://picsum.photos/seed/tom-fletcher/200/200', isSample: true, subscription: { status: 'cancelled', planName: 'Annual', planId: 'annual', interval: 'year', amount: 399, currency: 'GBP', expiresAt: past(3), startedAt: past(200) } },
+        ];
+      },
+
+      initBookerRegistry() {
+        const fresh = this.createSampleBookers();
+        const storedVersion = parseInt(localStorage.getItem('fm_booker_registry_version') || '0', 10);
+        if (!localStorage.getItem('fm_booker_registry')) {
+          localStorage.setItem('fm_booker_registry', JSON.stringify(fresh));
+          localStorage.setItem('fm_booker_registry_version', String(BOOKER_REGISTRY_VERSION));
+        } else if (storedVersion < BOOKER_REGISTRY_VERSION) {
+          const existing = JSON.parse(localStorage.getItem('fm_booker_registry') || '[]');
+          const ids = new Set(existing.map(b => b.id));
+          const merged = [...existing, ...fresh.filter(b => !ids.has(b.id))];
+          localStorage.setItem('fm_booker_registry', JSON.stringify(merged));
+          localStorage.setItem('fm_booker_registry_version', String(BOOKER_REGISTRY_VERSION));
+        }
+        this.state.bookerRegistry = JSON.parse(localStorage.getItem('fm_booker_registry') || '[]');
+      },
+
+      saveBookerRegistry() {
+        localStorage.setItem('fm_booker_registry', JSON.stringify(this.state.bookerRegistry));
+      },
+
+      syncBookerRegistryEntry() {
+        const profile = this.state.bookerProfile;
+        if (!profile) return;
+        const sub = this.bookerSubscription;
+        const hasPresence = profile.saved || (sub && sub.status === 'active');
+        if (!hasPresence) return;
+
+        const entry = {
+          id: BOOKER_ID,
+          name: profile.name?.trim() || 'Crew Booker',
+          company: profile.company || '',
+          location: profile.location || '',
+          bio: profile.bio || '',
+          avatar: profile.avatar,
+          isSample: false,
+          email: sub?.email || '',
+          updatedAt: new Date().toISOString(),
+          subscription: sub ? {
+            status: sub.status,
+            planName: sub.planName,
+            planId: sub.planId,
+            interval: sub.interval,
+            amount: sub.amount,
+            currency: sub.currency,
+            expiresAt: sub.expiresAt,
+            startedAt: sub.startedAt,
+          } : { status: 'none' },
+        };
+
+        const idx = this.state.bookerRegistry.findIndex(b => b.id === BOOKER_ID);
+        if (idx >= 0) this.state.bookerRegistry[idx] = entry;
+        else this.state.bookerRegistry.unshift(entry);
+        this.saveBookerRegistry();
+      },
+
+      getBookerDisplayName() {
+        const name = this.state.bookerProfile?.name?.trim();
+        return name || 'Demo Crew Booker';
+      },
+
+      getSubscriptionStatusMeta(status) {
+        const map = {
+          active: { label: 'Active', cls: 'bg-teal/20 text-teal-light border-teal/30' },
+          expired: { label: 'Expired', cls: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+          cancelled: { label: 'Cancelled', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+          none: { label: 'No subscription', cls: 'bg-white/5 text-gray-500 border-white/10' },
+        };
+        return map[status] || map.none;
       },
 
       loadBookerSubscription() {
@@ -2235,7 +2406,10 @@
 
         this.renderHiwTab();
         if (this.state.currentView === 'engineer') this.renderEngineerPortal();
-        if (this.state.currentView === 'booker') this.renderBookerPortal();
+        if (this.state.currentView === 'booker') {
+          this.renderBookerProfile();
+          this.renderBookerPortal();
+        }
         this.updateNotificationBadge();
       },
 
@@ -2356,11 +2530,132 @@
         this.renderCalendar('eng-calendar', p.availability, true, date => this.toggleUserAvailability(date));
         this.renderRatesList();
         this.renderMatches();
+        if (this.state.engineerTab === 'bookers') this.renderBookersDirectory();
         this.renderProfileCompleteness();
         this.renderOnboardingBanner();
         this.updateMatchBadge();
         this.updateSaveButton();
         this.state.isRendering = false;
+      },
+
+      renderBookerProfile() {
+        const p = this.state.bookerProfile;
+        if (!p) return;
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+        const avatar = document.getElementById('booker-avatar-preview');
+        if (avatar) avatar.src = p.avatar;
+        set('booker-name', p.name);
+        set('booker-company', p.company);
+        set('booker-profile-location', p.location);
+        set('booker-bio', p.bio);
+      },
+
+      handleBookerPhotoUpload(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          this.state.bookerProfile.avatar = ev.target.result;
+          document.getElementById('booker-avatar-preview').src = ev.target.result;
+          this.toast('Photo uploaded (stored locally)', 'success');
+        };
+        reader.readAsDataURL(file);
+      },
+
+      saveBookerProfile() {
+        const p = this.state.bookerProfile;
+        p.name = document.getElementById('booker-name')?.value.trim() || '';
+        p.company = document.getElementById('booker-company')?.value.trim() || '';
+        p.location = document.getElementById('booker-profile-location')?.value.trim() || '';
+        p.bio = document.getElementById('booker-bio')?.value.trim() || '';
+        if (!p.name) {
+          this.toast('Please enter your name', 'error');
+          return;
+        }
+        p.saved = true;
+        p.savedAt = new Date().toISOString();
+        this.saveBookerProfileToStorage();
+        this.syncBookerRegistryEntry();
+        this.toast('Booker profile saved — visible to engineers', 'success');
+        if (this.state.currentView === 'engineer' && this.state.engineerTab === 'bookers') this.renderBookersDirectory();
+      },
+
+      setBookerDirectoryFilter(filter) {
+        this.state.bookerDirectoryFilter = filter;
+        this.renderBookersDirectory();
+      },
+
+      renderBookersDirectory() {
+        const filterEl = document.getElementById('eng-bookers-filter');
+        const listEl = document.getElementById('eng-bookers-list');
+        if (!listEl) return;
+
+        const filters = [
+          { id: 'active', label: 'Active only' },
+          { id: 'all', label: 'All bookers' },
+        ];
+        if (filterEl) {
+          filterEl.innerHTML = filters.map(f => {
+            const active = this.state.bookerDirectoryFilter === f.id;
+            const cls = `px-3 py-1.5 text-xs font-medium rounded-full border transition-all cursor-pointer ${active ? 'selected border-teal bg-teal/20 text-teal-light' : 'border-white/20 text-gray-400 hover:border-white/40'}`;
+            return `<button type="button" class="${cls}" onclick="App.setBookerDirectoryFilter('${f.id}')">${f.label}</button>`;
+          }).join('');
+        }
+
+        let bookers = [...this.state.bookerRegistry];
+        if (this.state.bookerDirectoryFilter === 'active') {
+          bookers = bookers.filter(b => b.subscription?.status === 'active');
+        }
+        bookers.sort((a, b) => {
+          const order = { active: 0, cancelled: 1, expired: 2, none: 3 };
+          const sa = order[a.subscription?.status] ?? 4;
+          const sb = order[b.subscription?.status] ?? 4;
+          if (sa !== sb) return sa - sb;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+
+        if (!bookers.length) {
+          listEl.innerHTML = `<div class="sm:col-span-2 lg:col-span-3 bg-slate rounded-2xl border border-white/10 p-12 text-center">
+            <p class="text-gray-400 text-sm">No ${this.state.bookerDirectoryFilter === 'active' ? 'active ' : ''}crew bookers to display.</p>
+          </div>`;
+          return;
+        }
+
+        listEl.innerHTML = bookers.map(b => {
+          const sub = b.subscription || { status: 'none' };
+          const meta = this.getSubscriptionStatusMeta(sub.status);
+          const planLine = sub.status === 'active' && sub.planName
+            ? `${sub.planName} · ${this.currencySymbol(sub.currency)}${sub.amount}/${sub.interval === 'month' ? 'mo' : 'yr'}`
+            : sub.planName ? `${sub.planName} plan` : '';
+          const renews = sub.expiresAt && sub.status === 'active'
+            ? `Renews ${new Date(sub.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            : sub.expiresAt && sub.status !== 'none'
+              ? `Ended ${new Date(sub.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+              : '';
+          const youBadge = b.id === BOOKER_ID ? '<span class="text-[10px] font-bold uppercase text-teal bg-teal/20 px-1.5 py-0.5 rounded-full border border-teal/30">You</span>' : '';
+
+          return `<article class="bg-slate rounded-2xl border border-white/10 overflow-hidden hover:border-teal/30 transition-colors">
+            <div class="p-5">
+              <div class="flex items-start gap-4 mb-4">
+                <img src="${b.avatar}" alt="" class="w-14 h-14 rounded-full object-cover border-2 border-teal/20 shrink-0" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="font-semibold text-white truncate">${this.escapeHtml(b.name)}</h3>
+                    ${youBadge}
+                  </div>
+                  ${b.company ? `<p class="text-sm text-teal-light/90 truncate">${this.escapeHtml(b.company)}</p>` : ''}
+                  ${b.location ? `<p class="text-xs text-gray-500 mt-0.5">${this.escapeHtml(b.location)}</p>` : ''}
+                </div>
+              </div>
+              <div class="mb-3">
+                <span class="inline-flex text-xs font-semibold px-2.5 py-1 rounded-full border ${meta.cls}">${meta.label}</span>
+              </div>
+              ${planLine ? `<p class="text-sm text-gray-300">${this.escapeHtml(planLine)}</p>` : ''}
+              ${renews ? `<p class="text-xs text-gray-500 mt-1">${renews}</p>` : ''}
+              ${b.bio ? `<p class="text-sm text-gray-400 mt-3 line-clamp-3">${this.escapeHtml(b.bio)}</p>` : ''}
+            </div>
+          </article>`;
+        }).join('');
       },
 
       renderSkillChips(containerId, selected, interactive) {
@@ -2767,6 +3062,7 @@
           expiresAt: expires.toISOString(),
         };
         this.saveBookerSubscription();
+        this.syncBookerRegistryEntry();
         this.closeSubscriptionModal();
         this.logAccess('subscription_started', { planId: plan.id, email });
         this.toast(`${plan.name} subscription active — welcome!`, 'success');
@@ -2778,6 +3074,7 @@
         this.bookerSubscription.status = 'cancelled';
         this.bookerSubscription.cancelledAt = new Date().toISOString();
         this.saveBookerSubscription();
+        this.syncBookerRegistryEntry();
         this.logAccess('subscription_cancelled', { planId: this.bookerSubscription.planId });
         this.toast('Subscription cancelled', 'info');
         if (this.state.currentView === 'booker') this.renderBookerPortal();
@@ -2803,9 +3100,11 @@
           expiresAt: expires.toISOString(),
         };
         this.saveBookerSubscription();
+        this.syncBookerRegistryEntry();
       },
 
       renderBookerPortal() {
+        this.renderBookerProfile();
         const subscribed = this.hasBookerSubscription();
         document.getElementById('booker-subscription-banner')?.classList.toggle('hidden', !subscribed);
         document.getElementById('booker-subscription-paywall')?.classList.toggle('hidden', subscribed);
@@ -3919,7 +4218,7 @@
           id: 'inq-' + Date.now(),
           engineerId,
           bookerId: BOOKER_ID,
-          bookerName: 'Demo Crew Booker',
+          bookerName: this.getBookerDisplayName(),
           dates,
           message,
           status: 'pending',
@@ -3976,6 +4275,9 @@
         localStorage.removeItem('fm_app_state');
         localStorage.removeItem('fm_booker_projects');
         localStorage.removeItem('fm_booker_subscription');
+        localStorage.removeItem('fm_booker_profile');
+        localStorage.removeItem('fm_booker_registry');
+        localStorage.removeItem('fm_booker_registry_version');
         this.toast('Demo data reset — reloading…', 'info');
         setTimeout(() => location.reload(), 600);
       },

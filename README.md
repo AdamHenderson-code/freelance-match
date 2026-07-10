@@ -9,7 +9,7 @@ Or open [`index.html`](index.html) locally in any modern browser.
 ## Features
 
 - **Landing page** with role-specific CTAs, how-it-works, and trust signals
-- **Engineer Portal** — profile, availability calendar, rates & terms, inquiry responses
+- **Engineer Portal** — profile, availability calendar, rates & terms, **Crew Bookers** directory (subscription status), inquiry responses
 - **Booker Portal** — quick search plus **Projects & Shifts** planner with categorized projects, shift start/end times, per-shift availability visualization, shift details, and document uploads
 - **Notifications** — role-aware bell icon with inquiry alerts for engineers and bookers
 - **14 sample engineers** across UK, Ireland, France, Germany, Spain, and USA
@@ -18,6 +18,7 @@ Or open [`index.html`](index.html) locally in any modern browser.
 - **localStorage persistence** — all data survives page refresh
 - **Invite-only access** — gate with redeemable codes and an admin console to manage invites
 - **Booker subscriptions** — monthly or annual plans required for search and shift posting (engineer access remains free)
+- **Booker profiles** — avatar upload, name, company, and bio visible to engineers in the directory
 
 ## Booker subscriptions
 
@@ -101,27 +102,29 @@ Live URL: `https://<username>.github.io/freelance-match/`
 5. Accept the GDPR consent checkbox and click **Save Changes**
 6. Check the **notification bell** and **My Matches** for incoming inquiries
 7. Respond with **Confirm available** or **Decline** — bookers receive notifications
+8. Open **Crew Bookers** to see active production bookers, their companies, and subscription status (Monthly/Annual, renewal dates)
 
 ### As a Crew Booker
 
-1. Subscribe via the paywall (monthly or annual) — required before using booker tools
+1. Complete your **booker profile** (photo, name, company, location, bio) and click **Save profile**
+2. Subscribe via the paywall (monthly or annual) — required before using booker tools
 
 **Quick Search**
 
-2. Click **I'm a Crew Booker** or toggle **Demo as → Booker**
-3. On the **Quick Search** tab, select a date (or range), skills, optional location and max rate
-4. Click **Search Available Engineers** (14 sample profiles available)
-5. Use **View Full Profile** → **Request & place rate offer** to send an inquiry with an optional day rate bid
-6. Use **+10% / +15% / +20%** quick premiums when placing rate offers to improve acceptance
+3. Click **I'm a Crew Booker** or toggle **Demo as → Booker**
+4. On the **Quick Search** tab, select a date (or range), skills, optional location and max rate
+5. Click **Search Available Engineers** (14 sample profiles available)
+6. Use **View Full Profile** → **Request & place rate offer** to send an inquiry with an optional day rate bid
+7. Use **+10% / +15% / +20%** quick premiums when placing rate offers to improve acceptance
 
 **Projects & Shifts**
 
-7. Open the **Projects & Shifts** tab in the Booker Portal
-8. Create a project with a category (Live Broadcast, Sports, etc.), location, and overview
-9. Add shifts with date, start/end times, required roles, and shift details for engineers
-10. Upload supporting documents per shift (call sheets, site maps — stored locally, max 1.5 MB each)
-11. Review the availability bar and engineer avatars on each shift — green means good coverage
-12. Click **View & request** to see matching engineers and send a shift-specific inquiry with a rate offer
+8. Open the **Projects & Shifts** tab in the Booker Portal
+9. Create a project with a category (Live Broadcast, Sports, etc.), location, and overview
+10. Add shifts with date, start/end times, required roles, and shift details for engineers
+11. Upload supporting documents per shift (call sheets, site maps — stored locally, max 1.5 MB each)
+12. Review the availability bar and engineer avatars on each shift — green means good coverage
+13. Click **View & request** to see matching engineers and send a shift-specific inquiry with a rate offer
 
 **Both flows**
 
