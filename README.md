@@ -10,7 +10,7 @@ Or open [`index.html`](index.html) locally in any modern browser.
 
 - **Landing page** with role-specific CTAs, how-it-works, and trust signals
 - **Engineer Portal** — profile, availability calendar, rates & terms, inquiry responses
-- **Booker Portal** — skill/date/location/budget search, sorted results, sent inquiry history
+- **Booker Portal** — quick search plus **Projects & Shifts** planner with categorized projects, shift start/end times, per-shift availability visualization, shift details, and document uploads
 - **Notifications** — role-aware bell icon with inquiry alerts for engineers and bookers
 - **14 sample engineers** across UK, Ireland, France, Germany, Spain, and USA
 - **Matching logic** — skill + availability filtering, relevance and rate sorting
@@ -84,12 +84,27 @@ Live URL: `https://<username>.github.io/freelance-match/`
 
 ### As a Crew Booker
 
+**Quick Search**
+
 1. Click **I'm a Crew Booker** or toggle **Demo as → Booker**
-2. Select a date (or range), skills, optional location and max rate
+2. On the **Quick Search** tab, select a date (or range), skills, optional location and max rate
 3. Click **Search Available Engineers** (14 sample profiles available)
 4. Use **View Full Profile** → **Request Availability** to send an inquiry
-5. Watch the **notification bell** for engineer responses
-6. Track all sent inquiries in the **Sent inquiries** section
+
+**Projects & Shifts**
+
+1. Open the **Projects & Shifts** tab in the Booker Portal
+2. Create a project with a category (Live Broadcast, Sports, etc.), location, and overview
+3. Add shifts with date, start/end times, required roles, and shift details for engineers
+4. Upload supporting documents per shift (call sheets, site maps — stored locally, max 1.5 MB each)
+5. Review the availability bar and engineer avatars on each shift — green means good coverage
+6. Click **View & request** to see matching engineers and send a shift-specific inquiry
+
+**Both flows**
+
+- Watch the **notification bell** for engineer responses
+- Track all sent inquiries in the **Sent inquiries** section
+- Engineers see shift context and can download attached documents from their **My Matches** inbox
 
 ### Notifications
 

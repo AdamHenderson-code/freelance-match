@@ -57,6 +57,11 @@
     .search-loading { opacity: 0.5; pointer-events: none; }
     .notif-panel-enter { animation: slideUp 0.2s ease-out forwards; }
     .notif-unread { background: rgba(20, 184, 166, 0.08); border-left: 3px solid #14B8A6; }
+    .booker-tab.active { background: #14B8A6; color: #fff; }
+    .shift-coverage-good { background: linear-gradient(90deg, rgba(20,184,166,0.35) var(--coverage), rgba(30,41,55,0.5) var(--coverage)); }
+    .shift-coverage-partial { background: linear-gradient(90deg, rgba(245,158,11,0.35) var(--coverage), rgba(30,41,55,0.5) var(--coverage)); }
+    .shift-coverage-none { background: linear-gradient(90deg, rgba(239,68,68,0.25) 0%, rgba(30,41,55,0.5) 0%); }
+    .category-pill.selected { background: rgba(20,184,166,0.2); border-color: #14B8A6; color: #2DD4BF; }
     #access-gate.active { display: flex; }
     #access-gate { display: none; }
     #app-shell.hidden { display: none !important; }
@@ -693,8 +698,16 @@
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div class="mb-8">
           <h1 class="text-3xl font-bold text-white">Crew Booker Portal</h1>
-          <p class="text-gray-400 mt-2">Search available engineers by date, skills, location, and budget.</p>
+          <p class="text-gray-400 mt-2">Plan projects with shifts, see engineer availability, or run a quick search.</p>
         </div>
+
+        <!-- Booker sub-tabs -->
+        <div class="flex flex-wrap gap-2 mb-8">
+          <button type="button" data-btab="search" onclick="App.setBookerTab('search')" class="booker-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Quick Search</button>
+          <button type="button" data-btab="projects" onclick="App.setBookerTab('projects')" class="booker-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Projects &amp; Shifts</button>
+        </div>
+
+        <div id="booker-tab-search" class="booker-tab-panel">
 
         <!-- Search filters -->
         <div class="bg-slate rounded-2xl border border-white/10 p-6 mb-8">
@@ -752,6 +765,32 @@
           <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <h3 class="text-lg font-semibold text-white mb-2">No matching engineers</h3>
           <p class="text-sm text-gray-400 max-w-md mx-auto">Try broadening your skills filter, extending the date range, or increasing your max day rate.</p>
+        </div>
+
+        </div><!-- /booker-tab-search -->
+
+        <!-- Projects & Shifts -->
+        <div id="booker-tab-projects" class="booker-tab-panel hidden">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 class="text-xl font-semibold text-white">Your projects</h2>
+              <p class="text-sm text-gray-400 mt-1">Add shifts with start/end times and see which engineers are free for each slot.</p>
+            </div>
+            <button type="button" onclick="App.openProjectModal()" class="px-5 py-2.5 bg-teal hover:bg-teal-dark text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              New project
+            </button>
+          </div>
+
+          <div class="mb-6">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Filter by category</p>
+            <div id="booker-category-filter" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <div class="grid lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-4 space-y-3" id="booker-projects-list"></div>
+            <div class="lg:col-span-8" id="booker-project-detail"></div>
+          </div>
         </div>
 
         <!-- Sent inquiries -->
@@ -867,6 +906,101 @@
     </div>
   </div>
 
+  <!-- ==================== PROJECT MODAL ==================== -->
+  <div id="project-modal" class="fixed inset-0 z-[95] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-lg w-full shadow-2xl animate-slide-up">
+      <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+        <h2 id="project-modal-title" class="text-xl font-bold text-white">New project</h2>
+        <button type="button" onclick="App.closeProjectModal()" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="project-form" class="p-6 space-y-4" onsubmit="event.preventDefault();App.saveProject();">
+        <input type="hidden" id="project-edit-id" value="" />
+        <div>
+          <label for="project-name" class="block text-sm font-medium text-gray-300 mb-1.5">Project name</label>
+          <input type="text" id="project-name" required class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" placeholder="e.g. Wimbledon OB 2026" />
+        </div>
+        <div>
+          <label for="project-category" class="block text-sm font-medium text-gray-300 mb-1.5">Category</label>
+          <select id="project-category" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none"></select>
+        </div>
+        <div>
+          <label for="project-location" class="block text-sm font-medium text-gray-300 mb-1.5">Location</label>
+          <input type="text" id="project-location" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" placeholder="e.g. London, UK" />
+        </div>
+        <div>
+          <label for="project-description" class="block text-sm font-medium text-gray-300 mb-1.5">Overview</label>
+          <textarea id="project-description" rows="3" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none resize-y" placeholder="Brief production context for engineers…"></textarea>
+        </div>
+        <button type="submit" class="w-full px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors">Save project</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== SHIFT MODAL ==================== -->
+  <div id="shift-modal" class="fixed inset-0 z-[95] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
+      <div class="sticky top-0 bg-slate border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
+        <h2 id="shift-modal-title" class="text-xl font-bold text-white">Add shift</h2>
+        <button type="button" onclick="App.closeShiftModal()" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="shift-form" class="p-6 space-y-4" onsubmit="event.preventDefault();App.saveShift();">
+        <input type="hidden" id="shift-edit-id" value="" />
+        <input type="hidden" id="shift-project-id" value="" />
+        <div>
+          <label for="shift-title" class="block text-sm font-medium text-gray-300 mb-1.5">Shift title</label>
+          <input type="text" id="shift-title" required class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" placeholder="e.g. Day 1 — Broadcast Engineer" />
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div>
+            <label for="shift-date" class="block text-sm font-medium text-gray-300 mb-1.5">Date</label>
+            <input type="date" id="shift-date" required class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" />
+          </div>
+          <div>
+            <label for="shift-start" class="block text-sm font-medium text-gray-300 mb-1.5">Start time</label>
+            <input type="time" id="shift-start" required value="08:00" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" />
+          </div>
+          <div>
+            <label for="shift-end" class="block text-sm font-medium text-gray-300 mb-1.5">End time</label>
+            <input type="time" id="shift-end" required value="18:00" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Roles / skills needed</label>
+          <div id="shift-skills-pool" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <label for="shift-details" class="block text-sm font-medium text-gray-300 mb-1.5">Shift details <span class="text-gray-500">(visible to engineers)</span></label>
+          <textarea id="shift-details" rows="4" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none resize-y" placeholder="Venue, kit list, call time, parking, dress code, special requirements…"></textarea>
+        </div>
+        <div>
+          <label for="shift-max-rate" class="block text-sm font-medium text-gray-300 mb-1.5">Max day rate (GBP)</label>
+          <input type="number" id="shift-max-rate" min="200" max="2000" value="1000" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" />
+        </div>
+        <button type="submit" class="w-full px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors">Save shift</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== SHIFT ENGINEERS MODAL ==================== -->
+  <div id="shift-engineers-modal" class="fixed inset-0 z-[95] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-slide-up">
+      <div class="sticky top-0 bg-slate border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
+        <div>
+          <h2 class="text-xl font-bold text-white">Available engineers</h2>
+          <p id="shift-engineers-subtitle" class="text-sm text-gray-400 mt-0.5"></p>
+        </div>
+        <button type="button" onclick="App.closeShiftEngineersModal()" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="shift-engineers-list" class="p-6 space-y-3"></div>
+    </div>
+  </div>
+
   <!-- ==================== COOKIE CONSENT ==================== -->
   <div id="cookie-banner" class="fixed bottom-0 left-0 right-0 z-[80] hidden p-4">
     <div class="max-w-4xl mx-auto bg-slate border border-white/10 rounded-2xl shadow-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -896,6 +1030,17 @@
     const USER_ID = 'user-me';
     const ENGINEERS_VERSION = 2;
     const BOOKER_ID = 'demo-booker';
+    const PROJECT_CATEGORIES = [
+      'Live Broadcast',
+      'Film & Television',
+      'Live Events',
+      'Sports',
+      'News & Current Affairs',
+      'Corporate',
+      'Other',
+    ];
+    const SHIFT_DOC_MAX_BYTES = 1.5 * 1024 * 1024;
+    const SHIFT_DOC_MAX_COUNT = 3;
 
     const App = {
       accessConfig: null,
@@ -913,8 +1058,15 @@
         engineers: [],
         inquiries: [],
         notifications: [],
+        bookerTab: 'search',
+        bookerCategoryFilter: 'all',
+        projects: [],
+        selectedProjectId: null,
+        shiftFormSkills: [],
+        shiftModalContext: null,
         bookerSearch: { skills: [], hasSearched: false, sortBy: 'relevance' },
         inquiryTargetId: null,
+        inquiryShiftContext: null,
         lastSearchCriteria: null,
         dirty: false,
         isRendering: false,
@@ -1387,6 +1539,7 @@
         this.state.inquiries = JSON.parse(localStorage.getItem('fm_inquiries') || '[]');
         this.state.notifications = JSON.parse(localStorage.getItem('fm_notifications') || '[]');
         this.state.userProfile = this.getUserProfileFromStorage();
+        this.state.projects = JSON.parse(localStorage.getItem('fm_booker_projects') || '[]');
       },
 
       createSampleEngineers() {
@@ -1508,6 +1661,9 @@
           if (saved.currentView) this.state.currentView = saved.currentView;
           if (saved.hiwTab) this.state.hiwTab = saved.hiwTab;
           if (saved.engineerTab) this.state.engineerTab = saved.engineerTab;
+          if (saved.bookerTab) this.state.bookerTab = saved.bookerTab;
+          if (saved.selectedProjectId) this.state.selectedProjectId = saved.selectedProjectId;
+          if (saved.bookerCategoryFilter) this.state.bookerCategoryFilter = saved.bookerCategoryFilter;
         } catch { /* ignore */ }
       },
 
@@ -1517,7 +1673,14 @@
           currentView: this.state.currentView,
           hiwTab: this.state.hiwTab,
           engineerTab: this.state.engineerTab,
+          bookerTab: this.state.bookerTab,
+          selectedProjectId: this.state.selectedProjectId,
+          bookerCategoryFilter: this.state.bookerCategoryFilter,
         }));
+      },
+
+      saveProjects() {
+        localStorage.setItem('fm_booker_projects', JSON.stringify(this.state.projects));
       },
 
       saveEngineers() {
@@ -1688,11 +1851,23 @@
         document.getElementById('inquiry-modal').addEventListener('click', e => {
           if (e.target === e.currentTarget) this.closeInquiryModal();
         });
+        ['project-modal', 'shift-modal', 'shift-engineers-modal'].forEach(id => {
+          document.getElementById(id)?.addEventListener('click', e => {
+            if (e.target === e.currentTarget) {
+              if (id === 'project-modal') this.closeProjectModal();
+              if (id === 'shift-modal') this.closeShiftModal();
+              if (id === 'shift-engineers-modal') this.closeShiftEngineersModal();
+            }
+          });
+        });
         document.addEventListener('keydown', e => {
           if (e.key === 'Escape') {
             this.closePrivacyPolicy();
             this.closeProfileModal();
             this.closeInquiryModal();
+            this.closeProjectModal();
+            this.closeShiftModal();
+            this.closeShiftEngineersModal();
             this.closeNotificationsPanel();
             this.closeMobileMenu();
           }
@@ -2243,20 +2418,606 @@
               </div>
             </div>
             <p class="text-sm text-gray-300 mt-3">${this.escapeHtml(inq.message)}</p>
+            ${this.renderShiftContextBlock(inq)}
             ${actions}
           </div>`;
         }).join('');
       },
 
       /* ---- Booker Portal ---- */
+      setBookerTab(tab) {
+        this.state.bookerTab = tab;
+        this.saveState();
+        this.renderBookerPortal();
+      },
+
       renderBookerPortal() {
-        this.renderBookerSkills();
-        if (this.state.bookerSearch.hasSearched) {
-          this.renderBookerResults(this.state.bookerSearch.lastResults || []);
+        document.querySelectorAll('.booker-tab').forEach(btn => {
+          const active = btn.dataset.btab === this.state.bookerTab;
+          btn.classList.toggle('active', active);
+          btn.classList.toggle('text-gray-400', !active);
+        });
+        document.getElementById('booker-tab-search')?.classList.toggle('hidden', this.state.bookerTab !== 'search');
+        document.getElementById('booker-tab-projects')?.classList.toggle('hidden', this.state.bookerTab !== 'projects');
+
+        if (this.state.bookerTab === 'search') {
+          this.renderBookerSkills();
+          if (this.state.bookerSearch.hasSearched) {
+            this.renderBookerResults(this.state.bookerSearch.lastResults || []);
+          } else {
+            document.getElementById('booker-empty')?.classList.remove('hidden');
+          }
         } else {
-          document.getElementById('booker-empty')?.classList.remove('hidden');
+          this.renderBookerProjects();
         }
         this.renderBookerInquiries();
+      },
+
+      getProjectById(id) {
+        return this.state.projects.find(p => p.id === id);
+      },
+
+      getShiftById(projectId, shiftId) {
+        const project = this.getProjectById(projectId);
+        return project?.shifts?.find(s => s.id === shiftId);
+      },
+
+      formatShiftRange(shift) {
+        return `${this.formatDateDisplay(shift.date)} · ${shift.startTime}–${shift.endTime}`;
+      },
+
+      getShiftAvailableEngineers(shift, project) {
+        if (!shift.skills?.length) return [];
+        return this.matchEngineers({
+          skills: shift.skills,
+          requiredDates: [shift.date],
+          location: (project?.location || '').toLowerCase(),
+          maxRate: shift.maxRate || 1000,
+        });
+      },
+
+      getShiftCoverage(shift, project) {
+        const engineers = this.getShiftAvailableEngineers(shift, project);
+        const total = engineers.length;
+        const level = total === 0 ? 'none' : total < 3 ? 'partial' : 'good';
+        const pct = Math.min(100, Math.round((total / 6) * 100));
+        return { engineers, total, level, pct };
+      },
+
+      setBookerCategoryFilter(cat) {
+        this.state.bookerCategoryFilter = cat;
+        this.saveState();
+        this.renderBookerProjects();
+      },
+
+      getFilteredProjects() {
+        const filter = this.state.bookerCategoryFilter;
+        if (filter === 'all') return this.state.projects;
+        return this.state.projects.filter(p => p.category === filter);
+      },
+
+      renderBookerProjects() {
+        this.renderCategoryFilter();
+        this.renderProjectsList();
+        this.renderProjectDetail();
+      },
+
+      renderCategoryFilter() {
+        const el = document.getElementById('booker-category-filter');
+        if (!el) return;
+        const cats = ['all', ...PROJECT_CATEGORIES];
+        const labels = { all: 'All categories' };
+        el.innerHTML = cats.map(cat => {
+          const active = this.state.bookerCategoryFilter === cat;
+          const label = labels[cat] || cat;
+          const cls = `category-pill px-3 py-1.5 text-xs font-medium rounded-full border transition-all cursor-pointer ${active ? 'selected border-teal' : 'border-white/20 text-gray-400 hover:border-white/40'}`;
+          return `<button type="button" class="${cls}" data-cat="${this.escapeHtml(cat)}" onclick="App.setBookerCategoryFilter(this.dataset.cat)">${this.escapeHtml(label)}</button>`;
+        }).join('');
+      },
+
+      renderProjectsList() {
+        const el = document.getElementById('booker-projects-list');
+        if (!el) return;
+        const projects = this.getFilteredProjects();
+
+        if (!this.state.projects.length) {
+          el.innerHTML = `<div class="bg-slate rounded-2xl border border-white/10 p-8 text-center">
+            <svg class="w-10 h-10 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <p class="text-sm text-gray-400">No projects yet. Create one to start adding shifts.</p>
+          </div>`;
+          return;
+        }
+
+        if (!projects.length) {
+          el.innerHTML = `<div class="bg-slate rounded-xl border border-white/10 p-6 text-center text-sm text-gray-500">No projects in this category.</div>`;
+          return;
+        }
+
+        const grouped = {};
+        projects.forEach(p => {
+          if (!grouped[p.category]) grouped[p.category] = [];
+          grouped[p.category].push(p);
+        });
+
+        el.innerHTML = Object.entries(grouped).map(([cat, list]) => `
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2 px-1">${this.escapeHtml(cat)}</p>
+            <div class="space-y-2">
+              ${list.map(p => {
+                const selected = p.id === this.state.selectedProjectId;
+                const shiftCount = p.shifts?.length || 0;
+                return `<button type="button" onclick="App.selectProject('${p.id}')"
+                  class="w-full text-left p-4 rounded-xl border transition-all ${selected ? 'bg-teal/10 border-teal/40' : 'bg-slate border-white/10 hover:border-white/20'}">
+                  <p class="font-medium text-white truncate">${this.escapeHtml(p.name)}</p>
+                  <p class="text-xs text-gray-500 mt-1">${shiftCount} shift${shiftCount !== 1 ? 's' : ''}${p.location ? ' · ' + this.escapeHtml(p.location) : ''}</p>
+                </button>`;
+              }).join('')}
+            </div>
+          </div>
+        `).join('');
+      },
+
+      selectProject(id) {
+        this.state.selectedProjectId = id;
+        this.saveState();
+        this.renderProjectsList();
+        this.renderProjectDetail();
+      },
+
+      renderProjectDetail() {
+        const el = document.getElementById('booker-project-detail');
+        if (!el) return;
+        const project = this.getProjectById(this.state.selectedProjectId);
+
+        if (!project) {
+          el.innerHTML = `<div class="bg-slate rounded-2xl border border-white/10 p-12 text-center h-full min-h-[320px] flex flex-col items-center justify-center">
+            <svg class="w-12 h-12 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <h3 class="text-lg font-semibold text-white mb-2">Select a project</h3>
+            <p class="text-sm text-gray-400 max-w-sm">Choose a project from the list or create a new one to plan shifts and view engineer availability.</p>
+          </div>`;
+          return;
+        }
+
+        const shifts = [...(project.shifts || [])].sort((a, b) => {
+          const da = `${a.date}T${a.startTime}`;
+          const db = `${b.date}T${b.startTime}`;
+          return da.localeCompare(db);
+        });
+
+        el.innerHTML = `
+          <div class="bg-slate rounded-2xl border border-white/10 p-6 mb-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="min-w-0">
+                <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-teal/20 text-teal-light border border-teal/30 mb-2">${this.escapeHtml(project.category)}</span>
+                <h2 class="text-2xl font-bold text-white">${this.escapeHtml(project.name)}</h2>
+                ${project.location ? `<p class="text-sm text-gray-400 mt-1 flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>${this.escapeHtml(project.location)}</p>` : ''}
+                ${project.description ? `<p class="text-sm text-gray-400 mt-3 leading-relaxed">${this.escapeHtml(project.description)}</p>` : ''}
+              </div>
+              <div class="flex flex-wrap gap-2 shrink-0">
+                <button type="button" onclick="App.openProjectModal('${project.id}')" class="px-4 py-2 text-sm text-gray-300 hover:text-white border border-white/20 rounded-lg transition-colors">Edit</button>
+                <button type="button" onclick="App.deleteProject('${project.id}')" class="px-4 py-2 text-sm text-red-400 hover:text-red-300 border border-red-500/30 rounded-lg transition-colors">Delete</button>
+                <button type="button" onclick="App.openShiftModal('${project.id}')" class="px-4 py-2 text-sm bg-teal hover:bg-teal-dark text-white font-semibold rounded-lg transition-colors">Add shift</button>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-4" id="project-shifts-list">
+            ${shifts.length ? shifts.map(s => this.renderShiftCardHtml(s, project)).join('') : `
+              <div class="bg-slate rounded-2xl border border-dashed border-white/15 p-10 text-center">
+                <p class="text-sm text-gray-500">No shifts yet. Add shifts with start/end times and required roles.</p>
+              </div>`}
+          </div>`;
+      },
+
+      renderShiftCardHtml(shift, project) {
+        const coverage = this.getShiftCoverage(shift, project);
+        const coverageCls = { good: 'shift-coverage-good', partial: 'shift-coverage-partial', none: 'shift-coverage-none' }[coverage.level];
+        const statusText = coverage.total === 0
+          ? 'No engineers available'
+          : `${coverage.total} engineer${coverage.total !== 1 ? 's' : ''} available`;
+        const statusColor = { good: 'text-teal-light', partial: 'text-amber-300', none: 'text-red-400' }[coverage.level];
+        const avatars = coverage.engineers.slice(0, 6).map(e =>
+          `<img src="${e.avatar}" alt="" title="${this.escapeHtml(e.name)}" class="w-8 h-8 rounded-full border-2 border-slate object-cover -ml-2 first:ml-0" />`
+        ).join('');
+        const skillTags = (shift.skills || []).map(s =>
+          `<span class="px-2 py-0.5 text-xs rounded-full bg-teal/20 text-teal-light border border-teal/30">${this.escapeHtml(s)}</span>`
+        ).join('');
+        const docs = shift.documents || [];
+
+        return `<article class="bg-slate rounded-2xl border border-white/10 overflow-hidden" data-shift-id="${shift.id}">
+          <div class="h-2 ${coverageCls}" style="--coverage: ${coverage.pct}%"></div>
+          <div class="p-5">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+              <div>
+                <h3 class="text-lg font-semibold text-white">${this.escapeHtml(shift.title)}</h3>
+                <p class="text-sm text-gray-400 mt-0.5">${this.formatShiftRange(shift)}</p>
+              </div>
+              <div class="flex gap-2">
+                <button type="button" onclick="App.openShiftModal('${project.id}','${shift.id}')" class="text-xs text-gray-400 hover:text-teal">Edit</button>
+                <button type="button" onclick="App.deleteShift('${project.id}','${shift.id}')" class="text-xs text-red-400 hover:text-red-300">Delete</button>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-4">${skillTags || '<span class="text-xs text-gray-500">No skills set</span>'}</div>
+            ${shift.details ? `<p class="text-sm text-gray-400 mb-4 whitespace-pre-line border-l-2 border-teal/30 pl-3">${this.escapeHtml(shift.details)}</p>` : ''}
+
+            <div class="rounded-xl bg-navy/60 border border-white/10 p-4 mb-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs text-gray-500 uppercase tracking-wider">Availability</p>
+                  <p class="text-sm font-semibold ${statusColor} mt-0.5">${statusText}</p>
+                </div>
+                ${avatars ? `<div class="flex items-center pl-2">${avatars}</div>` : ''}
+                <button type="button" onclick="App.openShiftEngineersModal('${project.id}','${shift.id}')"
+                  class="text-xs font-semibold text-teal hover:text-teal-light transition-colors">
+                  ${coverage.total ? 'View &amp; request' : 'View criteria'}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-xs text-gray-500 uppercase tracking-wider">Supporting documents</p>
+                <label class="text-xs text-teal hover:text-teal-light cursor-pointer font-medium">
+                  Upload file
+                  <input type="file" class="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt" onchange="App.handleShiftDocUpload(event,'${project.id}','${shift.id}')" />
+                </label>
+              </div>
+              ${docs.length ? `<div class="space-y-2">${docs.map(d => `
+                <div class="flex items-center justify-between gap-2 p-2.5 bg-navy rounded-lg border border-white/5 text-sm">
+                  <button type="button" onclick="App.downloadShiftDocument('${project.id}','${shift.id}','${d.id}')" class="text-gray-300 hover:text-teal truncate text-left flex items-center gap-2 min-w-0">
+                    <svg class="w-4 h-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span class="truncate">${this.escapeHtml(d.name)}</span>
+                  </button>
+                  <button type="button" onclick="App.removeShiftDocument('${project.id}','${shift.id}','${d.id}')" class="text-xs text-red-400 hover:text-red-300 shrink-0">Remove</button>
+                </div>`).join('')}</div>` : '<p class="text-xs text-gray-600">No documents — upload call sheets, site maps, or briefs for engineers.</p>'}
+            </div>
+          </div>
+        </article>`;
+      },
+
+      openProjectModal(id) {
+        const isEdit = !!id;
+        document.getElementById('project-modal-title').textContent = isEdit ? 'Edit project' : 'New project';
+        document.getElementById('project-edit-id').value = id || '';
+        const project = isEdit ? this.getProjectById(id) : null;
+
+        const catSelect = document.getElementById('project-category');
+        catSelect.innerHTML = PROJECT_CATEGORIES.map(c =>
+          `<option value="${this.escapeHtml(c)}" ${project?.category === c ? 'selected' : ''}>${this.escapeHtml(c)}</option>`
+        ).join('');
+
+        document.getElementById('project-name').value = project?.name || '';
+        document.getElementById('project-location').value = project?.location || '';
+        document.getElementById('project-description').value = project?.description || '';
+
+        const modal = document.getElementById('project-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      closeProjectModal() {
+        document.getElementById('project-modal').classList.add('hidden');
+        document.getElementById('project-modal').classList.remove('flex');
+        document.body.style.overflow = '';
+      },
+
+      saveProject() {
+        const editId = document.getElementById('project-edit-id').value;
+        const name = document.getElementById('project-name').value.trim();
+        if (!name) {
+          this.toast('Project name is required', 'error');
+          return;
+        }
+        const data = {
+          name,
+          category: document.getElementById('project-category').value,
+          location: document.getElementById('project-location').value.trim(),
+          description: document.getElementById('project-description').value.trim(),
+        };
+
+        if (editId) {
+          const project = this.getProjectById(editId);
+          if (project) Object.assign(project, data, { updatedAt: new Date().toISOString() });
+          this.toast('Project updated', 'success');
+        } else {
+          const project = {
+            id: 'proj-' + Date.now(),
+            ...data,
+            shifts: [],
+            createdAt: new Date().toISOString(),
+          };
+          this.state.projects.unshift(project);
+          this.state.selectedProjectId = project.id;
+          this.toast('Project created', 'success');
+        }
+        this.saveProjects();
+        this.saveState();
+        this.closeProjectModal();
+        this.renderBookerProjects();
+      },
+
+      deleteProject(id) {
+        const project = this.getProjectById(id);
+        if (!project || !confirm(`Delete project "${project.name}" and all its shifts?`)) return;
+        this.state.projects = this.state.projects.filter(p => p.id !== id);
+        if (this.state.selectedProjectId === id) this.state.selectedProjectId = this.state.projects[0]?.id || null;
+        this.saveProjects();
+        this.saveState();
+        this.renderBookerProjects();
+        this.toast('Project deleted', 'info');
+      },
+
+      openShiftModal(projectId, shiftId) {
+        const project = this.getProjectById(projectId);
+        if (!project) return;
+        const isEdit = !!shiftId;
+        const shift = isEdit ? this.getShiftById(projectId, shiftId) : null;
+
+        document.getElementById('shift-modal-title').textContent = isEdit ? 'Edit shift' : 'Add shift';
+        document.getElementById('shift-edit-id').value = shiftId || '';
+        document.getElementById('shift-project-id').value = projectId;
+        document.getElementById('shift-title').value = shift?.title || '';
+        document.getElementById('shift-date').value = shift?.date || this.formatDate(new Date(Date.now() + 86400000));
+        document.getElementById('shift-date').min = this.formatDate(new Date());
+        document.getElementById('shift-start').value = shift?.startTime || '08:00';
+        document.getElementById('shift-end').value = shift?.endTime || '18:00';
+        document.getElementById('shift-details').value = shift?.details || '';
+        document.getElementById('shift-max-rate').value = shift?.maxRate || 1000;
+        this.state.shiftFormSkills = [...(shift?.skills || [])];
+        this.renderShiftFormSkills();
+
+        const modal = document.getElementById('shift-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      closeShiftModal() {
+        document.getElementById('shift-modal').classList.add('hidden');
+        document.getElementById('shift-modal').classList.remove('flex');
+        document.body.style.overflow = '';
+        this.state.shiftFormSkills = [];
+      },
+
+      renderShiftFormSkills() {
+        const el = document.getElementById('shift-skills-pool');
+        if (!el) return;
+        const selected = this.state.shiftFormSkills;
+        el.innerHTML = PREDEFINED_SKILLS.map(skill => {
+          const isSel = selected.includes(skill);
+          const cls = `skill-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-all cursor-pointer ${isSel ? 'selected border-teal' : 'border-white/20 text-gray-400 hover:border-white/40'}`;
+          return `<button type="button" class="${cls}" data-skill="${this.escapeHtml(skill)}" onclick="App.toggleShiftFormSkill(this.dataset.skill)">${this.escapeHtml(skill)}</button>`;
+        }).join('');
+      },
+
+      toggleShiftFormSkill(skill) {
+        const skills = this.state.shiftFormSkills;
+        const idx = skills.indexOf(skill);
+        if (idx >= 0) skills.splice(idx, 1);
+        else skills.push(skill);
+        this.renderShiftFormSkills();
+      },
+
+      saveShift() {
+        const projectId = document.getElementById('shift-project-id').value;
+        const editId = document.getElementById('shift-edit-id').value;
+        const project = this.getProjectById(projectId);
+        if (!project) return;
+
+        const title = document.getElementById('shift-title').value.trim();
+        const date = document.getElementById('shift-date').value;
+        const startTime = document.getElementById('shift-start').value;
+        const endTime = document.getElementById('shift-end').value;
+        const details = document.getElementById('shift-details').value.trim();
+        const maxRate = Number(document.getElementById('shift-max-rate').value) || 1000;
+
+        if (!title || !date || !startTime || !endTime) {
+          this.toast('Please complete all required shift fields', 'error');
+          return;
+        }
+        if (startTime >= endTime) {
+          this.toast('End time must be after start time', 'error');
+          return;
+        }
+        if (!this.state.shiftFormSkills.length) {
+          this.toast('Select at least one role/skill', 'error');
+          return;
+        }
+
+        const shiftData = {
+          title,
+          date,
+          startTime,
+          endTime,
+          details,
+          maxRate,
+          skills: [...this.state.shiftFormSkills],
+        };
+
+        if (editId) {
+          const shift = this.getShiftById(projectId, editId);
+          if (shift) Object.assign(shift, shiftData, { updatedAt: new Date().toISOString() });
+          this.toast('Shift updated', 'success');
+        } else {
+          project.shifts = project.shifts || [];
+          project.shifts.push({
+            id: 'shift-' + Date.now(),
+            ...shiftData,
+            documents: [],
+            createdAt: new Date().toISOString(),
+          });
+          this.toast('Shift added', 'success');
+        }
+        this.saveProjects();
+        this.closeShiftModal();
+        this.renderBookerProjects();
+      },
+
+      deleteShift(projectId, shiftId) {
+        const project = this.getProjectById(projectId);
+        const shift = this.getShiftById(projectId, shiftId);
+        if (!project || !shift || !confirm(`Delete shift "${shift.title}"?`)) return;
+        project.shifts = project.shifts.filter(s => s.id !== shiftId);
+        this.saveProjects();
+        this.renderBookerProjects();
+        this.toast('Shift deleted', 'info');
+      },
+
+      handleShiftDocUpload(event, projectId, shiftId) {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+        const shift = this.getShiftById(projectId, shiftId);
+        if (!shift) return;
+
+        shift.documents = shift.documents || [];
+        if (shift.documents.length >= SHIFT_DOC_MAX_COUNT) {
+          this.toast(`Maximum ${SHIFT_DOC_MAX_COUNT} documents per shift`, 'error');
+          return;
+        }
+        if (file.size > SHIFT_DOC_MAX_BYTES) {
+          this.toast('File must be under 1.5 MB', 'error');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = ev => {
+          shift.documents.push({
+            id: 'doc-' + Date.now(),
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            data: ev.target.result,
+            uploadedAt: new Date().toISOString(),
+          });
+          this.saveProjects();
+          this.renderProjectDetail();
+          this.toast('Document uploaded', 'success');
+        };
+        reader.readAsDataURL(file);
+      },
+
+      removeShiftDocument(projectId, shiftId, docId) {
+        const shift = this.getShiftById(projectId, shiftId);
+        if (!shift?.documents) return;
+        shift.documents = shift.documents.filter(d => d.id !== docId);
+        this.saveProjects();
+        this.renderProjectDetail();
+        this.toast('Document removed', 'info');
+      },
+
+      downloadShiftDocument(projectId, shiftId, docId) {
+        const doc = this.getShiftById(projectId, shiftId)?.documents?.find(d => d.id === docId);
+        if (!doc?.data) return;
+        const a = document.createElement('a');
+        a.href = doc.data;
+        a.download = doc.name;
+        a.click();
+      },
+
+      openShiftEngineersModal(projectId, shiftId) {
+        const project = this.getProjectById(projectId);
+        const shift = this.getShiftById(projectId, shiftId);
+        if (!project || !shift) return;
+
+        this.state.shiftModalContext = { projectId, shiftId };
+        document.getElementById('shift-engineers-subtitle').textContent =
+          `${project.name} — ${shift.title} (${this.formatShiftRange(shift)})`;
+
+        const engineers = this.getShiftAvailableEngineers(shift, project);
+        const list = document.getElementById('shift-engineers-list');
+
+        if (!engineers.length) {
+          list.innerHTML = `<div class="text-center py-8">
+            <p class="text-gray-400 text-sm">No engineers match this shift's date, skills, location, and budget.</p>
+            <p class="text-xs text-gray-600 mt-2">Try adjusting skills, location, max rate, or the shift date.</p>
+          </div>`;
+        } else {
+          list.innerHTML = engineers.map(eng => {
+            const rate = eng.bestRate;
+            const rateStr = rate ? `${this.currencySymbol(rate.currency)}${rate.rate}/day` : 'Rate on request';
+            return `<div class="flex flex-wrap items-center gap-4 p-4 bg-navy rounded-xl border border-white/10">
+              <img src="${eng.avatar}" alt="" class="w-12 h-12 rounded-full object-cover border-2 border-teal/20" />
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-white">${this.escapeHtml(eng.name)}</p>
+                <p class="text-xs text-gray-500">${this.escapeHtml(eng.location)} · ${rateStr}</p>
+                <div class="flex flex-wrap gap-1 mt-1.5">${eng.matchedSkills.map(s =>
+                  `<span class="px-1.5 py-0.5 text-[10px] rounded bg-teal/20 text-teal-light">${this.escapeHtml(s)}</span>`
+                ).join('')}</div>
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <button type="button" onclick="App.openProfileModal('${eng.id}')" class="px-3 py-1.5 text-xs text-gray-300 border border-white/20 rounded-lg hover:text-white">Profile</button>
+                <button type="button" onclick="App.openShiftInquiry('${eng.id}','${projectId}','${shiftId}')" class="px-3 py-1.5 text-xs bg-teal hover:bg-teal-dark text-white font-semibold rounded-lg">Request</button>
+              </div>
+            </div>`;
+          }).join('');
+        }
+
+        const modal = document.getElementById('shift-engineers-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      closeShiftEngineersModal() {
+        document.getElementById('shift-engineers-modal').classList.add('hidden');
+        document.getElementById('shift-engineers-modal').classList.remove('flex');
+        document.body.style.overflow = '';
+        this.state.shiftModalContext = null;
+      },
+
+      openShiftInquiry(engineerId, projectId, shiftId) {
+        const project = this.getProjectById(projectId);
+        const shift = this.getShiftById(projectId, shiftId);
+        const eng = this.getAllSearchableEngineers().find(e => e.id === engineerId);
+        if (!project || !shift || !eng) return;
+
+        this.state.inquiryTargetId = engineerId;
+        this.state.inquiryShiftContext = { projectId, shiftId, project, shift };
+        this.state.lastSearchCriteria = {
+          skills: shift.skills,
+          requiredDates: [shift.date],
+          location: project.location?.toLowerCase() || '',
+          maxRate: shift.maxRate || 1000,
+        };
+
+        this.closeShiftEngineersModal();
+        document.getElementById('inquiry-engineer-name').textContent = eng.name;
+        document.getElementById('inquiry-dates').value = `${this.formatShiftRange(shift)}`;
+        document.getElementById('inquiry-message').value =
+          `Project: ${project.name}\nShift: ${shift.title}\n\n${shift.details || 'Please confirm your availability for this shift.'}`;
+        document.getElementById('inquiry-consent').checked = false;
+
+        const modal = document.getElementById('inquiry-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      getInquiryShiftContext(inq) {
+        if (!inq.projectId || !inq.shiftId) return null;
+        const project = this.getProjectById(inq.projectId);
+        const shift = project ? this.getShiftById(inq.projectId, inq.shiftId) : null;
+        return project && shift ? { project, shift } : null;
+      },
+
+      renderShiftContextBlock(inq) {
+        const ctx = this.getInquiryShiftContext(inq);
+        if (!ctx) return '';
+        const { project, shift } = ctx;
+        const docs = shift.documents || [];
+        return `<div class="mt-3 p-3 bg-navy/60 rounded-lg border border-teal/20 text-sm">
+          <p class="text-xs text-teal uppercase tracking-wider font-semibold mb-1">Shift details</p>
+          <p class="text-white font-medium">${this.escapeHtml(project.name)} — ${this.escapeHtml(shift.title)}</p>
+          <p class="text-gray-400 text-xs mt-0.5">${this.formatShiftRange(shift)}</p>
+          ${shift.details ? `<p class="text-gray-400 mt-2 whitespace-pre-line">${this.escapeHtml(shift.details)}</p>` : ''}
+          ${docs.length ? `<div class="mt-3 pt-2 border-t border-white/10">
+            <p class="text-xs text-gray-500 mb-1.5">Supporting documents</p>
+            <div class="flex flex-wrap gap-2">${docs.map(d =>
+              `<button type="button" onclick="App.downloadShiftDocument('${inq.projectId}','${inq.shiftId}','${d.id}')" class="text-xs px-2 py-1 bg-white/10 hover:bg-teal/20 text-teal-light rounded border border-white/10">${this.escapeHtml(d.name)}</button>`
+            ).join('')}</div>
+          </div>` : ''}
+        </div>`;
       },
 
       sortResults(results, sortBy) {
@@ -2306,6 +3067,7 @@
             <div class="min-w-0 flex-1">
               <p class="font-medium text-white">To: ${this.escapeHtml(name)}</p>
               <p class="text-sm text-gray-400 mt-0.5">${this.escapeHtml(inq.dates)}</p>
+              ${inq.projectName ? `<p class="text-xs text-teal mt-1">${this.escapeHtml(inq.projectName)}${inq.shiftTitle ? ' · ' + this.escapeHtml(inq.shiftTitle) : ''}</p>` : ''}
               <p class="text-sm text-gray-500 mt-2 line-clamp-2">${this.escapeHtml(inq.message)}</p>
             </div>
             <div class="text-right shrink-0">
@@ -2535,6 +3297,7 @@
         document.getElementById('inquiry-modal').classList.remove('flex');
         document.body.style.overflow = '';
         this.state.inquiryTargetId = null;
+        this.state.inquiryShiftContext = null;
       },
 
       submitInquiry() {
@@ -2552,6 +3315,7 @@
         const eng = this.getAllSearchableEngineers().find(e => e.id === engineerId);
         const engName = eng?.name || 'Engineer';
 
+        const shiftCtx = this.state.inquiryShiftContext;
         const inquiry = {
           id: 'inq-' + Date.now(),
           engineerId,
@@ -2562,6 +3326,12 @@
           status: 'pending',
           sentAt: new Date().toISOString(),
         };
+        if (shiftCtx) {
+          inquiry.projectId = shiftCtx.projectId;
+          inquiry.shiftId = shiftCtx.shiftId;
+          inquiry.projectName = shiftCtx.project?.name;
+          inquiry.shiftTitle = shiftCtx.shift?.title;
+        }
         this.state.inquiries.push(inquiry);
         this.saveInquiries();
         this.closeInquiryModal();
@@ -2599,6 +3369,7 @@
         localStorage.removeItem('fm_engineers');
         localStorage.removeItem('fm_engineers_version');
         localStorage.removeItem('fm_app_state');
+        localStorage.removeItem('fm_booker_projects');
         this.toast('Demo data reset — reloading…', 'info');
         setTimeout(() => location.reload(), 600);
       },
