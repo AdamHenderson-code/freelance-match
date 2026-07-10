@@ -64,6 +64,8 @@
     .category-pill.selected { background: rgba(20,184,166,0.2); border-color: #14B8A6; color: #2DD4BF; }
     .rate-offer-premium { background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(20,184,166,0.08) 100%); }
     .premium-bid-badge { background: linear-gradient(135deg, rgba(245,158,11,0.25) 0%, rgba(251,191,36,0.15) 100%); }
+    .plan-card.selected { border-color: #14B8A6; box-shadow: 0 0 0 1px rgba(20,184,166,0.4), 0 8px 32px rgba(20,184,166,0.12); }
+    .billing-toggle.active { background: #14B8A6; color: #fff; }
     #access-gate.active { display: flex; }
     #access-gate { display: none; }
     #app-shell.hidden { display: none !important; }
@@ -149,6 +151,19 @@
             </div>
             <button type="button" id="admin-toggle-invite" onclick="App.toggleInviteOnly()" class="mt-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/10 hover:bg-white/20 transition-colors">Toggle</button>
           </div>
+        </div>
+
+        <!-- Booker subscriptions -->
+        <div class="bg-slate rounded-2xl border border-white/10 p-6">
+          <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+            <div>
+              <h2 class="text-lg font-semibold text-white">Booker subscriptions</h2>
+              <p class="text-sm text-gray-400 mt-1">Require a paid plan for search and shift posting. Pricing is configured in <code class="text-gray-500">access.json</code>.</p>
+            </div>
+            <button type="button" id="admin-toggle-subscriptions" onclick="App.toggleSubscriptionsEnabled()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white/10 hover:bg-white/20 transition-colors">Toggle</button>
+          </div>
+          <p id="admin-subscriptions-label" class="text-sm text-gray-300 mb-4">Enabled</p>
+          <div id="admin-subscription-plans" class="grid sm:grid-cols-2 gap-4"></div>
         </div>
 
         <!-- Create invite -->
@@ -703,6 +718,14 @@
           <p class="text-gray-400 mt-2">Plan projects with shifts, see engineer availability, or run a quick search.</p>
         </div>
 
+        <!-- Active subscription banner -->
+        <div id="booker-subscription-banner" class="hidden mb-6"></div>
+
+        <!-- Subscription paywall -->
+        <div id="booker-subscription-paywall" class="hidden mb-8"></div>
+
+        <div id="booker-portal-features">
+
         <!-- Booker sub-tabs -->
         <div class="flex flex-wrap gap-2 mb-8">
           <button type="button" data-btab="search" onclick="App.setBookerTab('search')" class="booker-tab px-4 py-2.5 text-sm font-semibold rounded-lg transition-all text-gray-400 hover:text-white">Quick Search</button>
@@ -800,6 +823,8 @@
           <h2 class="text-xl font-semibold text-white mb-4">Sent inquiries</h2>
           <div id="booker-inquiries-list" class="space-y-3"></div>
         </div>
+
+        </div><!-- /#booker-portal-features -->
       </section>
     </div>
 
@@ -959,6 +984,27 @@
     </div>
   </div>
 
+  <!-- ==================== SUBSCRIPTION CHECKOUT MODAL ==================== -->
+  <div id="subscription-modal" class="fixed inset-0 z-[95] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-md w-full shadow-2xl animate-slide-up">
+      <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white">Subscribe</h2>
+        <button type="button" onclick="App.closeSubscriptionModal()" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="subscription-form" class="p-6 space-y-4" novalidate onsubmit="event.preventDefault();App.completeSubscription();">
+        <div id="subscription-plan-summary" class="p-4 rounded-xl bg-teal/10 border border-teal/30 text-sm"></div>
+        <div>
+          <label for="subscription-email" class="block text-sm font-medium text-gray-300 mb-1.5">Work email</label>
+          <input type="email" id="subscription-email" required class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white focus:border-teal outline-none" placeholder="you@production.com" />
+        </div>
+        <p class="text-xs text-gray-500">Demo checkout — no payment is processed. Subscription is stored locally in your browser.</p>
+        <button type="submit" class="w-full px-6 py-3 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors">Start subscription</button>
+      </form>
+    </div>
+  </div>
+
   <!-- ==================== PROJECT MODAL ==================== -->
   <div id="project-modal" class="fixed inset-0 z-[95] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
     <div class="bg-slate rounded-2xl border border-white/10 max-w-lg w-full shadow-2xl animate-slide-up">
@@ -1094,12 +1140,24 @@
     ];
     const SHIFT_DOC_MAX_BYTES = 1.5 * 1024 * 1024;
     const SHIFT_DOC_MAX_COUNT = 3;
+    const DEFAULT_SUBSCRIPTION_PLANS = [
+      { id: 'monthly', name: 'Monthly', price: 49, currency: 'GBP', interval: 'month' },
+      { id: 'annual', name: 'Annual', price: 399, currency: 'GBP', interval: 'year', savingsPct: 32 },
+    ];
+    const BOOKER_SUBSCRIPTION_FEATURES = [
+      'Search available engineers by skill, date & budget',
+      'Projects & shifts with availability matching',
+      'Day rate offers and premium bids',
+      'Unlimited availability inquiries',
+    ];
 
     const App = {
       accessConfig: null,
       accessSession: null,
       adminSession: null,
       accessLog: [],
+      bookerSubscription: null,
+      selectedSubscriptionPlanId: 'annual',
       appInitialized: false,
 
       state: {
@@ -1157,17 +1215,30 @@
         const local = JSON.parse(localStorage.getItem('fm_access_config') || 'null');
 
         if (!remote && !local) {
-          this.accessConfig = { version: 1, inviteOnlyEnabled: false, adminPasswordHash: '', invites: [] };
+          this.accessConfig = {
+            version: 1,
+            inviteOnlyEnabled: false,
+            subscriptionsEnabled: true,
+            subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
+            adminPasswordHash: '',
+            invites: [],
+          };
           return;
         }
 
         if (!local) {
-          this.accessConfig = remote;
+          this.accessConfig = {
+            subscriptionsEnabled: true,
+            subscriptionPlans: DEFAULT_SUBSCRIPTION_PLANS,
+            ...remote,
+          };
         } else if (!remote) {
           this.accessConfig = local;
         } else {
           const merged = { ...remote };
           merged.inviteOnlyEnabled = local.inviteOnlyEnabled ?? remote.inviteOnlyEnabled;
+          merged.subscriptionsEnabled = local.subscriptionsEnabled ?? remote.subscriptionsEnabled ?? true;
+          merged.subscriptionPlans = local.subscriptionPlans || remote.subscriptionPlans || DEFAULT_SUBSCRIPTION_PLANS;
           merged.adminPasswordHash = local.adminPasswordHash || remote.adminPasswordHash;
           merged.version = Math.max(local.version || 0, remote.version || 0);
 
@@ -1466,6 +1537,14 @@
         this.toast(`Invite-only mode ${this.accessConfig.inviteOnlyEnabled ? 'enabled' : 'disabled'}`, 'info');
       },
 
+      toggleSubscriptionsEnabled() {
+        if (!this.isAdminSessionValid()) return;
+        this.accessConfig.subscriptionsEnabled = !this.accessConfig.subscriptionsEnabled;
+        this.saveAccessConfig();
+        this.renderAdminDashboard();
+        this.toast(`Booker subscriptions ${this.accessConfig.subscriptionsEnabled ? 'required' : 'disabled'}`, 'info');
+      },
+
       exportAccessConfig() {
         if (!this.isAdminSessionValid()) return;
         const blob = new Blob([JSON.stringify(this.accessConfig, null, 2)], { type: 'application/json' });
@@ -1511,6 +1590,22 @@
         document.getElementById('admin-stat-revoked').textContent = String(revoked);
         document.getElementById('admin-mode-label').textContent = this.accessConfig.inviteOnlyEnabled ? 'Enabled' : 'Disabled';
         document.getElementById('admin-toggle-invite').textContent = this.accessConfig.inviteOnlyEnabled ? 'Disable invite-only' : 'Enable invite-only';
+        document.getElementById('admin-subscriptions-label').textContent = this.accessConfig.subscriptionsEnabled
+          ? 'Subscriptions required for booker search & shifts'
+          : 'Subscriptions disabled — booker tools are free';
+        document.getElementById('admin-toggle-subscriptions').textContent = this.accessConfig.subscriptionsEnabled
+          ? 'Disable subscriptions'
+          : 'Enable subscriptions';
+
+        const plansEl = document.getElementById('admin-subscription-plans');
+        if (plansEl) {
+          plansEl.innerHTML = this.getSubscriptionPlans().map(plan => `
+            <div class="p-4 bg-navy/50 rounded-xl border border-white/10">
+              <p class="font-medium text-white">${this.escapeHtml(plan.name)}</p>
+              <p class="text-xl font-bold text-teal-light mt-1">${this.currencySymbol(plan.currency)}${plan.price}<span class="text-sm text-gray-400">/${plan.interval === 'month' ? 'mo' : 'yr'}</span></p>
+              ${plan.savingsPct ? `<p class="text-xs text-teal mt-1">${plan.savingsPct}% savings vs monthly</p>` : ''}
+            </div>`).join('');
+        }
 
         const list = document.getElementById('admin-invites-list');
         if (!invites.length) {
@@ -1552,6 +1647,8 @@
           admin_denied: 'Admin login failed',
           invite_created: 'Invite created',
           invite_revoked: 'Invite revoked',
+          subscription_started: 'Subscription started',
+          subscription_cancelled: 'Subscription cancelled',
         };
         el.innerHTML = this.accessLog.slice(0, 50).map(e => `
           <div class="flex justify-between gap-4 py-2 border-b border-white/5">
@@ -1593,6 +1690,53 @@
         this.state.notifications = JSON.parse(localStorage.getItem('fm_notifications') || '[]');
         this.state.userProfile = this.getUserProfileFromStorage();
         this.state.projects = JSON.parse(localStorage.getItem('fm_booker_projects') || '[]');
+        this.loadBookerSubscription();
+      },
+
+      loadBookerSubscription() {
+        this.bookerSubscription = JSON.parse(localStorage.getItem('fm_booker_subscription') || 'null');
+        if (this.bookerSubscription?.status === 'active' && this.bookerSubscription.expiresAt) {
+          if (new Date() > new Date(this.bookerSubscription.expiresAt)) {
+            this.bookerSubscription.status = 'expired';
+            this.saveBookerSubscription();
+          }
+        }
+      },
+
+      saveBookerSubscription() {
+        if (this.bookerSubscription) localStorage.setItem('fm_booker_subscription', JSON.stringify(this.bookerSubscription));
+        else localStorage.removeItem('fm_booker_subscription');
+      },
+
+      getSubscriptionPlans() {
+        return this.accessConfig?.subscriptionPlans?.length
+          ? this.accessConfig.subscriptionPlans
+          : DEFAULT_SUBSCRIPTION_PLANS;
+      },
+
+      getSubscriptionPlan(planId) {
+        return this.getSubscriptionPlans().find(p => p.id === planId);
+      },
+
+      subscriptionsRequired() {
+        return !!this.accessConfig?.subscriptionsEnabled;
+      },
+
+      hasBookerSubscription() {
+        if (!this.subscriptionsRequired()) return true;
+        const sub = this.bookerSubscription;
+        if (!sub || sub.status !== 'active') return false;
+        if (sub.expiresAt && new Date() > new Date(sub.expiresAt)) return false;
+        return true;
+      },
+
+      requireBookerSubscription(action) {
+        if (this.hasBookerSubscription()) return true;
+        this.toast(`Subscribe to access ${action}`, 'info');
+        this.state.bookerTab = 'search';
+        if (this.state.currentView === 'booker') this.renderBookerPortal();
+        else this.navigate('booker');
+        return false;
       },
 
       createSampleEngineers() {
@@ -1904,12 +2048,13 @@
         document.getElementById('inquiry-modal').addEventListener('click', e => {
           if (e.target === e.currentTarget) this.closeInquiryModal();
         });
-        ['project-modal', 'shift-modal', 'shift-engineers-modal'].forEach(id => {
+        ['project-modal', 'shift-modal', 'shift-engineers-modal', 'subscription-modal'].forEach(id => {
           document.getElementById(id)?.addEventListener('click', e => {
             if (e.target === e.currentTarget) {
               if (id === 'project-modal') this.closeProjectModal();
               if (id === 'shift-modal') this.closeShiftModal();
               if (id === 'shift-engineers-modal') this.closeShiftEngineersModal();
+              if (id === 'subscription-modal') this.closeSubscriptionModal();
             }
           });
         });
@@ -1921,6 +2066,7 @@
             this.closeProjectModal();
             this.closeShiftModal();
             this.closeShiftEngineersModal();
+            this.closeSubscriptionModal();
             this.closeNotificationsPanel();
             this.closeMobileMenu();
           }
@@ -2480,12 +2626,198 @@
 
       /* ---- Booker Portal ---- */
       setBookerTab(tab) {
+        if (!this.hasBookerSubscription()) {
+          this.toast('Subscribe to access booker tools', 'info');
+          return;
+        }
         this.state.bookerTab = tab;
         this.saveState();
         this.renderBookerPortal();
       },
 
+      setSubscriptionPlanChoice(planId) {
+        this.selectedSubscriptionPlanId = planId;
+        this.renderBookerSubscriptionPaywall();
+      },
+
+      formatPlanPrice(plan) {
+        const sym = this.currencySymbol(plan.currency);
+        const suffix = plan.interval === 'month' ? '/mo' : '/yr';
+        return `${sym}${plan.price}${suffix}`;
+      },
+
+      renderBookerSubscriptionPaywall() {
+        const el = document.getElementById('booker-subscription-paywall');
+        if (!el) return;
+        const plans = this.getSubscriptionPlans();
+        const monthly = plans.find(p => p.interval === 'month');
+        const annual = plans.find(p => p.interval === 'year');
+        const selected = this.selectedSubscriptionPlanId || annual?.id || plans[0]?.id;
+
+        const planCard = (plan, highlight) => {
+          if (!plan) return '';
+          const isSel = plan.id === selected;
+          const sym = this.currencySymbol(plan.currency);
+          const equiv = plan.interval === 'year' && monthly
+            ? `<p class="text-xs text-gray-500 mt-1">Equivalent to ${sym}${Math.round(plan.price / 12)}/mo</p>` : '';
+          const savings = plan.savingsPct
+            ? `<span class="inline-block text-[10px] font-bold uppercase tracking-wider text-teal bg-teal/20 px-2 py-0.5 rounded-full border border-teal/30 mb-2">Save ${plan.savingsPct}%</span>` : '';
+          return `<button type="button" onclick="App.setSubscriptionPlanChoice('${plan.id}')"
+            class="plan-card w-full text-left p-6 rounded-2xl border transition-all ${isSel ? 'selected bg-teal/5 border-teal/50' : 'bg-slate border-white/10 hover:border-white/25'} ${highlight ? 'ring-1 ring-teal/20' : ''}">
+            ${savings}
+            <p class="text-lg font-semibold text-white">${this.escapeHtml(plan.name)}</p>
+            <p class="text-3xl font-bold text-white mt-2">${sym}${plan.price}<span class="text-sm font-normal text-gray-400">${plan.interval === 'month' ? '/month' : '/year'}</span></p>
+            ${equiv}
+          </button>`;
+        };
+
+        el.innerHTML = `
+          <div class="bg-slate rounded-2xl border border-white/10 p-8 sm:p-10">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+              <h2 class="text-2xl sm:text-3xl font-bold text-white">Subscribe to hire crew</h2>
+              <p class="text-gray-400 mt-3 text-sm sm:text-base">Crew booker access requires a subscription. Search engineers, post shifts, and send inquiries with flexible monthly or annual billing.</p>
+            </div>
+            <ul class="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto mb-8">
+              ${BOOKER_SUBSCRIPTION_FEATURES.map(f => `
+                <li class="flex items-start gap-2 text-sm text-gray-300">
+                  <svg class="w-4 h-4 text-teal shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                  ${this.escapeHtml(f)}
+                </li>`).join('')}
+            </ul>
+            <div class="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-8">
+              ${planCard(monthly, false)}
+              ${planCard(annual, true)}
+            </div>
+            <div class="text-center">
+              <button type="button" onclick="App.openSubscriptionCheckout('${selected}')" class="px-8 py-3.5 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors shadow-lg shadow-teal/20">
+                Subscribe — ${this.escapeHtml(this.formatPlanPrice(plans.find(p => p.id === selected) || plans[0]))}
+              </button>
+              <p class="text-xs text-gray-600 mt-4">Engineer profiles remain free. Cancel anytime — demo stores subscription locally.</p>
+            </div>
+          </div>`;
+      },
+
+      renderBookerSubscriptionBanner() {
+        const el = document.getElementById('booker-subscription-banner');
+        const sub = this.bookerSubscription;
+        if (!el || !sub || sub.status !== 'active') return;
+
+        const renews = sub.expiresAt
+          ? new Date(sub.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          : '—';
+
+        el.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-teal/10 border border-teal/30">
+          <div>
+            <p class="text-sm font-semibold text-white">${this.escapeHtml(sub.planName || 'Booker')} plan <span class="text-teal font-normal">· active</span></p>
+            <p class="text-xs text-gray-400 mt-0.5">${this.formatPlanPrice(sub)} · Renews ${renews}${sub.email ? ' · ' + this.escapeHtml(sub.email) : ''}</p>
+          </div>
+          <button type="button" onclick="App.cancelBookerSubscription()" class="text-xs text-gray-400 hover:text-red-400 transition-colors">Cancel subscription</button>
+        </div>`;
+      },
+
+      openSubscriptionCheckout(planId) {
+        const plan = this.getSubscriptionPlan(planId || this.selectedSubscriptionPlanId);
+        if (!plan) return;
+        this.selectedSubscriptionPlanId = plan.id;
+
+        const sym = this.currencySymbol(plan.currency);
+        document.getElementById('subscription-plan-summary').innerHTML = `
+          <p class="font-semibold text-white">${this.escapeHtml(plan.name)} plan</p>
+          <p class="text-2xl font-bold text-teal-light mt-1">${sym}${plan.price}<span class="text-sm text-gray-400">${plan.interval === 'month' ? '/month' : '/year'}</span></p>
+          ${plan.savingsPct ? `<p class="text-xs text-teal mt-1">Save ${plan.savingsPct}% vs paying monthly</p>` : ''}`;
+
+        const email = this.accessSession?.email || this.bookerSubscription?.email || '';
+        document.getElementById('subscription-email').value = email;
+
+        const modal = document.getElementById('subscription-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      },
+
+      closeSubscriptionModal() {
+        document.getElementById('subscription-modal')?.classList.add('hidden');
+        document.getElementById('subscription-modal')?.classList.remove('flex');
+        document.body.style.overflow = '';
+      },
+
+      completeSubscription() {
+        const plan = this.getSubscriptionPlan(this.selectedSubscriptionPlanId);
+        const email = (document.getElementById('subscription-email')?.value || '').trim().toLowerCase();
+        if (!plan) return;
+        if (!email) {
+          this.toast('Enter your work email', 'error');
+          return;
+        }
+
+        const now = new Date();
+        const expires = new Date(now);
+        if (plan.interval === 'month') expires.setMonth(expires.getMonth() + 1);
+        else expires.setFullYear(expires.getFullYear() + 1);
+
+        this.bookerSubscription = {
+          planId: plan.id,
+          planName: plan.name,
+          status: 'active',
+          amount: plan.price,
+          currency: plan.currency,
+          interval: plan.interval,
+          email,
+          startedAt: now.toISOString(),
+          expiresAt: expires.toISOString(),
+        };
+        this.saveBookerSubscription();
+        this.closeSubscriptionModal();
+        this.logAccess('subscription_started', { planId: plan.id, email });
+        this.toast(`${plan.name} subscription active — welcome!`, 'success');
+        if (this.state.currentView === 'booker') this.renderBookerPortal();
+      },
+
+      cancelBookerSubscription() {
+        if (!this.bookerSubscription || !confirm('Cancel your booker subscription? Search and shift posting will be locked when the current period ends.')) return;
+        this.bookerSubscription.status = 'cancelled';
+        this.bookerSubscription.cancelledAt = new Date().toISOString();
+        this.saveBookerSubscription();
+        this.logAccess('subscription_cancelled', { planId: this.bookerSubscription.planId });
+        this.toast('Subscription cancelled', 'info');
+        if (this.state.currentView === 'booker') this.renderBookerPortal();
+      },
+
+      activateDemoSubscription(planId, email) {
+        this.selectedSubscriptionPlanId = planId || 'annual';
+        const plan = this.getSubscriptionPlan(this.selectedSubscriptionPlanId);
+        if (!plan) return;
+        const now = new Date();
+        const expires = new Date(now);
+        if (plan.interval === 'month') expires.setMonth(expires.getMonth() + 1);
+        else expires.setFullYear(expires.getFullYear() + 1);
+        this.bookerSubscription = {
+          planId: plan.id,
+          planName: plan.name,
+          status: 'active',
+          amount: plan.price,
+          currency: plan.currency,
+          interval: plan.interval,
+          email: email || 'demo@booker.com',
+          startedAt: now.toISOString(),
+          expiresAt: expires.toISOString(),
+        };
+        this.saveBookerSubscription();
+      },
+
       renderBookerPortal() {
+        const subscribed = this.hasBookerSubscription();
+        document.getElementById('booker-subscription-banner')?.classList.toggle('hidden', !subscribed);
+        document.getElementById('booker-subscription-paywall')?.classList.toggle('hidden', subscribed);
+        document.getElementById('booker-portal-features')?.classList.toggle('hidden', !subscribed);
+
+        if (!subscribed) {
+          this.renderBookerSubscriptionPaywall();
+          return;
+        }
+
+        this.renderBookerSubscriptionBanner();
+
         document.querySelectorAll('.booker-tab').forEach(btn => {
           const active = btn.dataset.btab === this.state.bookerTab;
           btn.classList.toggle('active', active);
@@ -2729,6 +3061,7 @@
       },
 
       openProjectModal(id) {
+        if (!id && !this.requireBookerSubscription('shift postings')) return;
         const isEdit = !!id;
         document.getElementById('project-modal-title').textContent = isEdit ? 'Edit project' : 'New project';
         document.getElementById('project-edit-id').value = id || '';
@@ -2802,6 +3135,7 @@
       },
 
       openShiftModal(projectId, shiftId) {
+        if (!this.requireBookerSubscription('shift postings')) return;
         const project = this.getProjectById(projectId);
         if (!project) return;
         const isEdit = !!shiftId;
@@ -3151,6 +3485,7 @@
       },
 
       runBookerSearch() {
+        if (!this.requireBookerSubscription('engineer search')) return;
         const useRange = document.getElementById('booker-use-range').checked;
         const dateStart = document.getElementById('booker-date-start').value;
         const dateEnd = useRange ? document.getElementById('booker-date-end').value : dateStart;
@@ -3561,6 +3896,7 @@
       },
 
       submitInquiry() {
+        if (!this.requireBookerSubscription('inquiries')) return;
         if (!document.getElementById('inquiry-consent').checked) {
           this.toast('Please accept the privacy consent before sending', 'error');
           return;
@@ -3639,6 +3975,7 @@
         localStorage.removeItem('fm_engineers_version');
         localStorage.removeItem('fm_app_state');
         localStorage.removeItem('fm_booker_projects');
+        localStorage.removeItem('fm_booker_subscription');
         this.toast('Demo data reset — reloading…', 'info');
         setTimeout(() => location.reload(), 600);
       },

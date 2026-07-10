@@ -1,5 +1,23 @@
 {
   "version": 1,
+  "subscriptionsEnabled": true,
+  "subscriptionPlans": [
+    {
+      "id": "monthly",
+      "name": "Monthly",
+      "price": 49,
+      "currency": "GBP",
+      "interval": "month"
+    },
+    {
+      "id": "annual",
+      "name": "Annual",
+      "price": 399,
+      "currency": "GBP",
+      "interval": "year",
+      "savingsPct": 32
+    }
+  ],
   "inviteOnlyEnabled": true,
   "adminPasswordHash": "5c997508a3c7db9c62f9950d20412d744214f55a907772431b1376435fb21ac3",
   "invites": [

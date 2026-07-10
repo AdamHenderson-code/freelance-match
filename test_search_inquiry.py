@@ -73,7 +73,8 @@ def run_tests():
         if accept.is_visible():
             accept.click()
 
-        # --- Booker search flow ---
+        # --- Booker search flow (requires subscription) ---
+        page.evaluate("App.activateDemoSubscription('monthly', 'e2e@booker.com')")
         page.evaluate("App.ctaBooker()")
         page.wait_for_selector('[data-view="booker"].active')
 
