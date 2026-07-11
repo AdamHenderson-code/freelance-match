@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html access.json _site/
+          cp -r assets _site/
           touch _site/.nojekyll
 
       - name: Setup Pages
