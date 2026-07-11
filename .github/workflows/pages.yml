@@ -27,7 +27,7 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
-          cp index.html access.json _site/
+          cp index.html access.json features.js _site/
           cp -r assets _site/
           touch _site/.nojekyll
 

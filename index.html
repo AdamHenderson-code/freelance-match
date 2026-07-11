@@ -4351,5 +4351,9 @@
 
     document.addEventListener('DOMContentLoaded', () => App.bootstrap());
   </script>
+  <script src="features.js"></script>
+  <script>
+    if (typeof FMFeatures !== 'undefined' && typeof App !== 'undefined') FMFeatures.install(App);
+  </script>
 </body>
 </html>

@@ -19,6 +19,12 @@ Or open [`index.html`](index.html) locally in any modern browser.
 - **Invite-only access** — gate with redeemable codes and an admin console to manage invites
 - **Booker subscriptions** — monthly or annual plans required for search and shift posting (engineer access remains free)
 - **Booker profiles** — avatar upload, name, company, and bio visible to engineers in the directory
+- **Phase 1 enhancements** (`features.js`):
+  - **Time-aware availability** — morning / afternoon / evening slots per day; shift matching respects start/end times
+  - **Booking workflow** — inquiry statuses from pending through accepted, counter-offer, confirmed, booked, and completed (48h expiry on pending)
+  - **Threaded messages** — per-inquiry message threads for bookers and engineers
+  - **Shortlists & crew sheet** — star engineers from search or shifts; crew sheet on project detail
+  - **Booker dashboard** — projects, shifts, fill rate, committed spend, and recent bookings
 
 ## Booker subscriptions
 
@@ -97,11 +103,11 @@ Live URL: `https://<username>.github.io/freelance-match/`
 
 1. Click **I'm a Freelance Engineer** or toggle **Demo as → Engineer**
 2. Complete your **Profile** (name, location, bio, skills)
-3. Mark days on the **Availability** calendar (or use **Mark next 7 days**)
+3. Mark days on the **Availability** calendar (or use **Mark next 7 days**), then set **morning / afternoon / evening** slots per day
 4. Add **Rates & Terms** for roles you offer
 5. Accept the GDPR consent checkbox and click **Save Changes**
 6. Check the **notification bell** and **My Matches** for incoming inquiries
-7. Respond with **Confirm available** or **Decline** — bookers receive notifications
+7. Respond with **Confirm available**, **Counter-offer**, or **Decline** — use the message thread to negotiate; advance through confirmed → booked → completed
 8. Open **Crew Bookers** to see active production bookers, their companies, and subscription status (Monthly/Annual, renewal dates)
 
 ### As a Crew Booker
@@ -117,14 +123,20 @@ Live URL: `https://<username>.github.io/freelance-match/`
 6. Use **View Full Profile** → **Request & place rate offer** to send an inquiry with an optional day rate bid
 7. Use **+10% / +15% / +20%** quick premiums when placing rate offers to improve acceptance
 
+**Dashboard**
+
+8. Open the **Dashboard** tab for fill-rate stats, committed spend, and recent bookings
+
 **Projects & Shifts**
 
-8. Open the **Projects & Shifts** tab in the Booker Portal
-9. Create a project with a category (Live Broadcast, Sports, etc.), location, and overview
-10. Add shifts with date, start/end times, required roles, and shift details for engineers
-11. Upload supporting documents per shift (call sheets, site maps — stored locally, max 1.5 MB each)
-12. Review the availability bar and engineer avatars on each shift — green means good coverage
-13. Click **View & request** to see matching engineers and send a shift-specific inquiry with a rate offer
+9. Open the **Projects & Shifts** tab in the Booker Portal
+10. Create a project with a category (Live Broadcast, Sports, etc.), location, and overview
+11. Add shifts with date, start/end times, required roles, and shift details for engineers
+12. Use the **crew sheet** at the top of project detail to track open vs filled roles
+13. Star engineers into a **shortlist** from search results or the shift engineers modal
+14. Upload supporting documents per shift (call sheets, site maps — stored locally, max 1.5 MB each)
+15. Review the availability bar and engineer avatars on each shift — green means good coverage
+16. Click **View & request** to see matching engineers and send a shift-specific inquiry with a rate offer
 
 **Both flows**
 
@@ -161,7 +173,7 @@ python3 test_search_inquiry.py
 
 ## Tech stack
 
-- Single HTML file (`index.html`)
+- Single HTML file (`index.html`) + `features.js` extension module
 - [Tailwind CSS](https://tailwindcss.com/) via CDN
 - Vanilla JavaScript
 - GitHub Actions → GitHub Pages
