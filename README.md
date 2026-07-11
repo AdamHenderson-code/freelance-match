@@ -19,11 +19,28 @@ Or open [`index.html`](index.html) locally in any modern browser.
 - **Invite-only access** — gate with redeemable codes and an admin console to manage invites
 - **Booker subscriptions** — monthly or annual plans required for search and shift posting (engineer access remains free)
 - **Booker profiles** — avatar upload, name, company, and bio visible to engineers in the directory
-- **Phase 1 enhancements** (`features.js`):
-  - **Booking workflow** — inquiry statuses from pending through accepted, counter-offer, confirmed, booked, and completed (48h expiry on pending)
-  - **Threaded messages** — per-inquiry message threads for bookers and engineers
-  - **Shortlists & crew sheet** — star engineers from search or shifts; crew sheet on project detail
-  - **Booker dashboard** — projects, shifts, fill rate, committed spend, and recent bookings
+- **Phase 1** (`features.js`) — booking workflow, threaded messages, shortlists & crew sheet, booker dashboard
+- **Phase 2** (`features-phases.js`) — saved searches with alerts, shift templates & duplicate project/shift, favorites & block list, engineer **Open Shifts** applications, crew pack CSV & iCal export
+- **Phase 3** — engineer credentials, post-completion reviews, admin verification badges, production company team, simulated email outbox, admin user directory
+- **Phase 4** — smarter search ranking (favorites, location, history, reviews), demo API session tokens, Stripe-style checkout with webhook log, private booker notes on engineer cards
+- **Grok Imagine assets** — hero, feature, and CTA section images in `assets/`
+
+### Phase 1 detail
+
+- **Booking workflow** — statuses from pending through completed; 48h expiry on pending
+- **Threaded messages** — per-inquiry threads for bookers and engineers
+- **Shortlists & crew sheet** — star engineers; crew sheet on project detail
+- **Booker dashboard** — fill rate, committed spend, recent bookings
+
+### Phase 2–4 detail
+
+| Area | Features |
+|------|----------|
+| Booker search | Save searches, alert on new matches, ♥ favorites, ⊘ block list, private notes |
+| Projects | Duplicate project/shift, +Week bulk shifts, save template, export crew pack CSV |
+| Engineer | Open Shifts tab (apply to unfilled shifts), Credentials tab, Settings (email prefs, .ics) |
+| Admin | User directory, assign verification badges, Stripe webhook log, email outbox |
+| Platform | Demo API session token, simulated Stripe checkout, smarter relevance ranking |
 
 ## Booker subscriptions
 
@@ -166,13 +183,13 @@ python3 test_search_inquiry.py
 
 | Location | Prompt |
 |----------|--------|
-| **Hero** | Professional diverse group of freelance technical crew on a film set at golden hour, cinematic lighting, modern broadcast equipment, confident and collaborative atmosphere, deep navy and teal color grading |
-| **Feature section** | Behind-the-scenes photo of a live broadcast truck setup at a major sporting event, engineers configuring audio and video equipment, professional workwear, dynamic lighting, cinematic depth of field |
-| **CTA banner** | Aerial view of a large outdoor concert stage being built, cranes and lighting rigs, crew in high-vis vests, twilight sky, epic scale production setup |
+| **Hero** | `assets/hero.jpg` — live OB / broadcast production scene |
+| **Feature section** | `assets/feature.jpg` — broadcast truck at sporting event |
+| **CTA banner** | `assets/cta.jpg` — outdoor concert stage build at twilight |
 
 ## Tech stack
 
-- Single HTML file (`index.html`) + `features.js` extension module
+- Single HTML file (`index.html`) + `features.js` + `features-phases.js` extension modules
 - [Tailwind CSS](https://tailwindcss.com/) via CDN
 - Vanilla JavaScript
 - GitHub Actions → GitHub Pages

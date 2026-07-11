@@ -497,7 +497,7 @@
             </div>
             <div class="order-1 lg:order-2 relative rounded-2xl overflow-hidden aspect-[4/3] shadow-2xl shadow-black/40">
               <!-- Grok Imagine prompt: Behind-the-scenes photo of a live broadcast truck setup at a major sporting event, engineers configuring audio and video equipment, professional workwear, dynamic lighting, cinematic depth of field -->
-              <img src="https://picsum.photos/seed/freelancematch-feature/800/600" alt="Production crew at work" class="w-full h-full object-cover" loading="lazy" />
+              <img src="assets/feature.jpg" alt="Production crew at work" class="w-full h-full object-cover" loading="lazy" />
               <div class="absolute inset-0 bg-gradient-to-t from-navy/60 to-transparent"></div>
             </div>
           </div>
@@ -548,7 +548,7 @@
       <section class="relative py-20 overflow-hidden">
         <div class="absolute inset-0">
           <!-- Grok Imagine prompt: Aerial view of a large outdoor concert stage being built, cranes and lighting rigs, crew in high-vis vests, twilight sky, epic scale production setup -->
-          <img src="https://picsum.photos/seed/freelancematch-cta/1920/600" alt="" class="w-full h-full object-cover opacity-30" loading="lazy" />
+          <img src="assets/cta.jpg" alt="" class="w-full h-full object-cover opacity-30" loading="lazy" />
         </div>
         <div class="absolute inset-0 bg-gradient-to-r from-navy/95 to-slate/90"></div>
         <div class="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
@@ -4352,8 +4352,10 @@
     document.addEventListener('DOMContentLoaded', () => App.bootstrap());
   </script>
   <script src="features.js"></script>
+  <script src="features-phases.js"></script>
   <script>
     if (typeof FMFeatures !== 'undefined' && typeof App !== 'undefined') FMFeatures.install(App);
+    if (typeof FMPhases !== 'undefined' && typeof App !== 'undefined') FMPhases.install(App);
   </script>
 </body>
 </html>
