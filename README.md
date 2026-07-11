@@ -20,7 +20,6 @@ Or open [`index.html`](index.html) locally in any modern browser.
 - **Booker subscriptions** — monthly or annual plans required for search and shift posting (engineer access remains free)
 - **Booker profiles** — avatar upload, name, company, and bio visible to engineers in the directory
 - **Phase 1 enhancements** (`features.js`):
-  - **Time-aware availability** — morning / afternoon / evening slots per day; shift matching respects start/end times
   - **Booking workflow** — inquiry statuses from pending through accepted, counter-offer, confirmed, booked, and completed (48h expiry on pending)
   - **Threaded messages** — per-inquiry message threads for bookers and engineers
   - **Shortlists & crew sheet** — star engineers from search or shifts; crew sheet on project detail
@@ -103,7 +102,7 @@ Live URL: `https://<username>.github.io/freelance-match/`
 
 1. Click **I'm a Freelance Engineer** or toggle **Demo as → Engineer**
 2. Complete your **Profile** (name, location, bio, skills)
-3. Mark days on the **Availability** calendar (or use **Mark next 7 days**), then set **morning / afternoon / evening** slots per day
+3. Mark days on the **Availability** calendar (or use **Mark next 7 days**)
 4. Add **Rates & Terms** for roles you offer
 5. Accept the GDPR consent checkbox and click **Save Changes**
 6. Check the **notification bell** and **My Matches** for incoming inquiries

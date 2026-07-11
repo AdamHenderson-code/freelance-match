@@ -1,17 +1,13 @@
 /**
  * Freelance Match — Phase 1 features extension
- * 1. Time-aware availability
- * 2. Booking workflow + counter-offers
- * 3. Threaded messages
- * 4. Shortlists & crew sheet
- * 5. Booker dashboard
+ * 1. Booking workflow + counter-offers
+ * 2. Threaded messages
+ * 3. Shortlists & crew sheet
+ * 4. Booker dashboard
  */
 const FMFeatures = {
   VERSION: 1,
   STORAGE_KEY: 'fm_features',
-  TIME_SLOTS: ['morning', 'afternoon', 'evening'],
-  SLOT_LABELS: { morning: 'Morning (06–12)', afternoon: 'Afternoon (12–18)', evening: 'Evening (18–24)' },
-  SLOT_RANGES: { morning: [6, 12], afternoon: [12, 18], evening: [18, 24] },
   INQUIRY_EXPIRY_HOURS: 48,
 
   defaultData() {
@@ -19,7 +15,6 @@ const FMFeatures = {
       version: 1,
       shortlists: {},
       inquiryMessages: {},
-      selectedAvailDate: null,
     };
   },
 
@@ -47,7 +42,6 @@ const FMFeatures = {
     const origInit = App.init.bind(App);
     App.init = () => {
       origInit();
-      this.migrateProfiles(App);
       this.expireInquiries(App);
     };
 
@@ -59,51 +53,6 @@ const FMFeatures = {
   },
 
   /* ---- Data helpers ---- */
-
-  migrateProfiles(App) {
-    const ensureSlots = (profile) => {
-      if (!profile) return;
-      if (!profile.availabilitySlots) profile.availabilitySlots = {};
-      (profile.availability || []).forEach((date) => {
-        if (!profile.availabilitySlots[date]?.length) {
-          profile.availabilitySlots[date] = [...this.TIME_SLOTS];
-        }
-      });
-    };
-    ensureSlots(App.state.userProfile);
-    App.state.engineers.forEach(ensureSlots);
-    App.state.engineers.forEach((e) => {
-      if (!e.availabilitySlots) {
-        e.availabilitySlots = {};
-        (e.availability || []).forEach((d) => {
-          e.availabilitySlots[d] = [...this.TIME_SLOTS];
-        });
-      }
-    });
-  },
-
-  getSlotsForEngineer(eng, date) {
-    if (!eng?.availability?.includes(date)) return [];
-    const slots = eng.availabilitySlots?.[date];
-    return slots?.length ? slots : [...this.TIME_SLOTS];
-  },
-
-  parseTimeToHour(timeStr) {
-    if (!timeStr) return 0;
-    const [h] = timeStr.split(':').map(Number);
-    return h;
-  },
-
-  shiftOverlapsSlots(startTime, endTime, slots) {
-    if (!slots?.length) return false;
-    const startH = this.parseTimeToHour(startTime);
-    let endH = this.parseTimeToHour(endTime);
-    if (endH <= startH) endH = 24;
-    return slots.some((slot) => {
-      const [s, e] = this.SLOT_RANGES[slot] || [0, 0];
-      return startH < e && endH > s;
-    });
-  },
 
   expireInquiries(App) {
     const now = Date.now();
@@ -318,59 +267,6 @@ const FMFeatures = {
     return `<p class="text-xs text-gray-500 mt-1">Expires ${exp.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>`;
   },
 
-  /* ---- Availability UI ---- */
-
-  renderSlotPicker(App) {
-    const el = document.getElementById('eng-slot-picker');
-    if (!el) return;
-    const p = App.state.userProfile;
-    const date = App.featureData.selectedAvailDate;
-    if (!date || !p.availability?.includes(date)) {
-      el.innerHTML = '<p class="text-sm text-gray-500">Select an available day on the calendar to set time slots.</p>';
-      return;
-    }
-    const slots = p.availabilitySlots?.[date] || [...this.TIME_SLOTS];
-    el.innerHTML = `
-      <p class="text-sm text-white font-medium mb-2">${App.formatDateDisplay(date)}</p>
-      <div class="flex flex-wrap gap-2">
-        ${this.TIME_SLOTS.map((slot) => {
-          const on = slots.includes(slot);
-          const cls = on
-            ? 'bg-teal/30 border-teal text-teal-light'
-            : 'border-white/20 text-gray-400 hover:border-white/40';
-          return `<button type="button" onclick="FMFeatures.toggleSlot('${date}','${slot}')" class="px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${cls}">${this.SLOT_LABELS[slot]}</button>`;
-        }).join('')}
-      </div>
-      <p class="text-xs text-gray-500 mt-2">Bookers matching shifts will only see you when your slots overlap shift hours.</p>`;
-  },
-
-  toggleSlot(date, slot) {
-    const App = window.App;
-    const p = App.state.userProfile;
-    if (!p.availabilitySlots) p.availabilitySlots = {};
-    if (!p.availabilitySlots[date]) p.availabilitySlots[date] = [...this.TIME_SLOTS];
-    const slots = p.availabilitySlots[date];
-    const idx = slots.indexOf(slot);
-    if (idx >= 0) {
-      if (slots.length <= 1) {
-        App.toast('Keep at least one time slot', 'error');
-        return;
-      }
-      slots.splice(idx, 1);
-    } else {
-      slots.push(slot);
-      slots.sort((a, b) => this.TIME_SLOTS.indexOf(a) - this.TIME_SLOTS.indexOf(b));
-    }
-    App.markDirty();
-    this.renderSlotPicker(App);
-    if (p.saved) App.saveUserProfileToStorage();
-  },
-
-  onCalendarToggle(App, date) {
-    App.featureData.selectedAvailDate = date;
-    this.renderSlotPicker(App);
-  },
-
   /* ---- Crew sheet ---- */
 
   renderCrewSheet(App, project) {
@@ -513,13 +409,7 @@ const FMFeatures = {
   /* ---- UI injection ---- */
 
   injectUI() {
-    const availTab = document.getElementById('eng-tab-availability');
-    if (availTab && !document.getElementById('eng-slot-picker')) {
-      const picker = document.createElement('div');
-      picker.id = 'eng-slot-picker';
-      picker.className = 'mt-6 pt-6 border-t border-white/10';
-      availTab.querySelector('.bg-slate')?.appendChild(picker);
-    }
+    document.getElementById('eng-slot-picker')?.remove();
 
     const bookerTabs = document.querySelector('#booker-portal-features .flex.flex-wrap.gap-2.mb-8');
     if (bookerTabs && !document.querySelector('[data-btab="dashboard"]')) {
@@ -594,61 +484,6 @@ const FMFeatures = {
         const inq = App.state.inquiries.find((i) => i.id === id);
         if (inq) self.addMessage(App, id, 'engineer', 'Confirmed available for these dates.', inq.engineerId === 'user-me' ? App.state.userProfile.name : 'Engineer');
       }
-    };
-
-    const origToggleAvail = App.toggleUserAvailability.bind(App);
-    App.toggleUserAvailability = function (date) {
-      const p = App.state.userProfile;
-      const wasAvail = p.availability?.includes(date);
-      origToggleAvail(date);
-      if (!p.availabilitySlots) p.availabilitySlots = {};
-      if (!wasAvail && p.availability.includes(date)) {
-        p.availabilitySlots[date] = [...self.TIME_SLOTS];
-      } else if (wasAvail) {
-        delete p.availabilitySlots[date];
-      }
-      App.featureData.selectedAvailDate = date;
-      self.renderSlotPicker(App);
-    };
-
-    const origMarkWeek = App.markWeekAvailable.bind(App);
-    App.markWeekAvailable = function () {
-      origMarkWeek();
-      const p = App.state.userProfile;
-      if (!p.availabilitySlots) p.availabilitySlots = {};
-      p.availability.forEach((d) => {
-        if (!p.availabilitySlots[d]) p.availabilitySlots[d] = [...self.TIME_SLOTS];
-      });
-      self.renderSlotPicker(App);
-    };
-
-    const origMatch = App.matchEngineers.bind(App);
-    App.matchEngineers = function (criteria) {
-      let results = origMatch(criteria);
-      const shiftTimes = criteria.shiftStart && criteria.shiftEnd
-        ? { start: criteria.shiftStart, end: criteria.shiftEnd }
-        : null;
-      if (shiftTimes) {
-        const date = criteria.requiredDates?.[0];
-        results = results.filter((eng) => {
-          const slots = self.getSlotsForEngineer(eng, date);
-          return self.shiftOverlapsSlots(shiftTimes.start, shiftTimes.end, slots);
-        });
-      }
-      return results;
-    };
-
-    const origGetShiftEng = App.getShiftAvailableEngineers.bind(App);
-    App.getShiftAvailableEngineers = function (shift, project) {
-      if (!shift.skills?.length) return [];
-      return App.matchEngineers({
-        skills: shift.skills,
-        requiredDates: [shift.date],
-        location: (project?.location || '').toLowerCase(),
-        maxRate: shift.maxRate || 1000,
-        shiftStart: shift.startTime,
-        shiftEnd: shift.endTime,
-      });
     };
 
     const origSubmit = App.submitInquiry.bind(App);
@@ -808,12 +643,6 @@ const FMFeatures = {
       const tab = App.state.bookerTab;
       document.getElementById('booker-tab-dashboard')?.classList.toggle('hidden', tab !== 'dashboard');
       if (tab === 'dashboard') self.renderDashboard(App);
-    };
-
-    const origRenderEngPortal = App.renderEngineerPortal.bind(App);
-    App.renderEngineerPortal = function () {
-      origRenderEngPortal();
-      self.renderSlotPicker(App);
     };
 
     const origSaveProfile = App.saveEngineerProfile.bind(App);
