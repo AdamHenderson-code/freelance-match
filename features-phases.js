@@ -5,6 +5,8 @@
  * Phase 4: Demo API, Stripe simulation, smarter ranking, booker notes
  */
 const FMPhases = {
+  _shiftApplyPending: null,
+
   mergeFeatureData(App) {
     const d = App.featureData;
     const defaults = {
@@ -279,26 +281,115 @@ const FMPhases = {
     return rows.sort((a, b) => `${a.shift.date}`.localeCompare(b.shift.date));
   },
 
-  applyToShift(App, projectId, shiftId) {
+  resolveApp(App) {
+    return App || (typeof window !== 'undefined' && window.App);
+  },
+
+  bindShiftApplyModal() {
+    if (this._shiftApplyModalBound) return;
+    this._shiftApplyModalBound = true;
+    const modal = document.getElementById('shift-apply-modal');
+    const form = document.getElementById('shift-apply-form');
+    const close = () => this.closeShiftApplyModal();
+    document.getElementById('shift-apply-close')?.addEventListener('click', close);
+    document.getElementById('shift-apply-cancel')?.addEventListener('click', close);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.submitShiftApplication();
+    });
+  },
+
+  bindOpenShiftsPanel() {
+    const panel = document.getElementById('eng-tab-open-shifts');
+    if (!panel || panel.dataset.applyBound) return;
+    panel.dataset.applyBound = '1';
+    panel.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-shift-apply]');
+      if (!btn || btn.disabled) return;
+      e.preventDefault();
+      this.openShiftApplyModal(this.resolveApp(), btn.dataset.projectId, btn.dataset.shiftId);
+    });
+  },
+
+  openShiftApplyModal(App, projectId, shiftId) {
+    App = this.resolveApp(App);
+    if (!App) return;
     const project = App.getProjectById(projectId);
     const shift = App.getShiftById(projectId, shiftId);
-    if (!project || !shift) return;
-    const msg = prompt('Message to booker (optional):', `Interested in ${shift.title} on ${App.formatDateDisplay(shift.date)}.`);
-    if (msg === null) return;
+    if (!project || !shift) {
+      App.toast('Shift not found — it may have been filled or removed', 'error');
+      return;
+    }
+    const already = (App.featureData.shiftApplications || []).some(
+      (a) => a.engineerId === 'user-me' && a.projectId === projectId && a.shiftId === shiftId
+    );
+    if (already) {
+      App.toast('You have already applied for this shift', 'info');
+      return;
+    }
+    this._shiftApplyPending = { projectId, shiftId };
+    const summary = document.getElementById('shift-apply-summary');
+    const message = document.getElementById('shift-apply-message');
+    if (summary) {
+      summary.innerHTML = `Applying for <strong class="text-white">${App.escapeHtml(shift.title)}</strong> on <strong class="text-white">${App.escapeHtml(project.name)}</strong> · ${App.formatShiftRange(shift)}`;
+    }
+    if (message) {
+      message.value = `Interested in ${shift.title} on ${App.formatDateDisplay(shift.date)}.`;
+    }
+    const modal = document.getElementById('shift-apply-modal');
+    modal?.classList.remove('hidden');
+    modal?.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+    message?.focus();
+  },
+
+  closeShiftApplyModal() {
+    this._shiftApplyPending = null;
+    const modal = document.getElementById('shift-apply-modal');
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+    document.body.style.overflow = '';
+  },
+
+  submitShiftApplication() {
+    const App = this.resolveApp();
+    const pending = this._shiftApplyPending;
+    if (!App || !pending) return;
+    const project = App.getProjectById(pending.projectId);
+    const shift = App.getShiftById(pending.projectId, pending.shiftId);
+    if (!project || !shift) {
+      App.toast('Shift not found — it may have been filled or removed', 'error');
+      this.closeShiftApplyModal();
+      return;
+    }
+    const msg = document.getElementById('shift-apply-message')?.value?.trim() || '';
+    if (!App.featureData.shiftApplications) App.featureData.shiftApplications = [];
     App.featureData.shiftApplications.push({
       id: 'app-' + Date.now(),
-      projectId, shiftId,
+      projectId: pending.projectId,
+      shiftId: pending.shiftId,
       engineerId: 'user-me',
-      engineerName: App.state.userProfile.name || 'Engineer',
-      message: msg || '',
+      engineerName: App.state.userProfile?.name || 'Engineer',
+      message: msg,
       at: new Date().toISOString(),
       status: 'pending',
     });
     this.save(App);
-    App.addNotification({ type: 'shift_application', role: 'booker', title: 'Shift application received', message: `${App.state.userProfile.name || 'An engineer'} applied for ${shift.title}` });
+    App.addNotification({
+      type: 'shift_application',
+      role: 'booker',
+      title: 'Shift application received',
+      message: `${App.state.userProfile?.name || 'An engineer'} applied for ${shift.title}`,
+    });
     this.simulateEmail(App, 'shift_application', `New application for ${shift.title}`);
     App.toast('Application sent', 'success');
+    this.closeShiftApplyModal();
     this.renderOpenShifts(App);
+  },
+
+  applyToShift(App, projectId, shiftId) {
+    this.openShiftApplyModal(App, projectId, shiftId);
   },
 
   renderOpenShifts(App) {
@@ -316,8 +407,8 @@ const FMPhases = {
           <p class="text-sm text-teal-light/80">${App.escapeHtml(project.name)}</p>
           <p class="text-xs text-gray-500 mt-1">${App.formatShiftRange(shift)} · ${(shift.skills || []).join(', ')}</p>
           ${shift.details ? `<p class="text-sm text-gray-400 mt-2 line-clamp-2">${App.escapeHtml(shift.details)}</p>` : ''}
-          <button type="button" ${applied ? 'disabled' : ''} onclick="FMPhases.applyToShift(window.App,'${project.id}','${shift.id}')"
-            class="mt-3 px-4 py-2 text-sm font-semibold rounded-lg ${applied ? 'bg-white/5 text-gray-500' : 'bg-teal hover:bg-teal-dark text-white'}">${applied ? 'Applied' : 'Apply'}</button>
+          <button type="button" data-shift-apply data-project-id="${App.escapeHtml(project.id)}" data-shift-id="${App.escapeHtml(shift.id)}" ${applied ? 'disabled' : ''}
+            class="mt-3 px-4 py-2 text-sm font-semibold rounded-lg ${applied ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-teal hover:bg-teal-dark text-white'}">${applied ? 'Applied' : 'Apply'}</button>
         </article>`;
       }).join('') : '<p class="text-sm text-gray-500">No open shifts right now. Bookers create projects in the Booker Portal.</p>'}`;
   },
@@ -943,9 +1034,13 @@ const FMPhases = {
     App._phasesInstalled = true;
     this.mergeFeatureData(App);
     this.injectUI();
+    this.bindShiftApplyModal();
+    this.bindOpenShiftsPanel();
     this.patchApp(App);
   },
 };
+
+if (typeof window !== 'undefined') window.FMPhases = FMPhases;
 
 if (typeof App !== 'undefined' && typeof FMFeatures !== 'undefined') {
   FMPhases.install(App);

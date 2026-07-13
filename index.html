@@ -1151,6 +1151,29 @@
     </div>
   </div>
 
+  <!-- ==================== SHIFT APPLY MODAL (engineer) ==================== -->
+  <div id="shift-apply-modal" class="fixed inset-0 z-[95] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="shift-apply-title">
+    <div class="bg-slate rounded-2xl border border-white/10 max-w-lg w-full shadow-2xl animate-slide-up">
+      <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+        <h2 id="shift-apply-title" class="text-xl font-bold text-white">Apply for shift</h2>
+        <button type="button" id="shift-apply-close" class="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="shift-apply-form" class="p-6 space-y-4" novalidate>
+        <p id="shift-apply-summary" class="text-sm text-gray-400"></p>
+        <div>
+          <label for="shift-apply-message" class="block text-sm font-medium text-gray-300 mb-1.5">Message to booker</label>
+          <textarea id="shift-apply-message" rows="4" class="w-full px-4 py-2.5 bg-navy border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-teal outline-none resize-y" placeholder="Brief note about your availability and relevant experience…"></textarea>
+        </div>
+        <div class="flex gap-3 pt-1">
+          <button type="button" id="shift-apply-cancel" class="flex-1 px-4 py-2.5 border border-white/20 text-gray-300 font-semibold rounded-xl hover:bg-white/5 transition-colors">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2.5 bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl transition-colors">Send application</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ==================== COOKIE CONSENT ==================== -->
   <div id="cookie-banner" class="fixed bottom-0 left-0 right-0 z-[80] hidden p-4">
     <div class="max-w-4xl mx-auto bg-slate border border-white/10 rounded-2xl shadow-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -4348,6 +4371,8 @@
         this.toast('Only essential storage is used in this demo', 'info');
       },
     };
+
+    window.App = App;
 
     document.addEventListener('DOMContentLoaded', () => App.bootstrap());
   </script>
